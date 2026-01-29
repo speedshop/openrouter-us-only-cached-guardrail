@@ -6,7 +6,7 @@ OUTPUT_DIR="${SCRIPT_DIR}/.."
 API_BASE="https://openrouter.ai/api/v1"
 
 MIN_THROUGHPUT_P50="${OPENROUTER_MIN_THROUGHPUT_P50:-50}"
-MAX_LATENCY_P50="${OPENROUTER_MAX_LATENCY_P50:-2}"
+MAX_LATENCY_P50="${OPENROUTER_MAX_LATENCY_P50:-2000}"
 INCLUDE_OPENAI="${OPENROUTER_INCLUDE_OPENAI:-false}"
 INCLUDE_GOOGLE="${OPENROUTER_INCLUDE_GOOGLE:-false}"
 INCLUDE_ANTHROPIC="${OPENROUTER_INCLUDE_ANTHROPIC:-false}"
@@ -89,7 +89,7 @@ else
 
   echo "Filtering for endpoints with caching + performance thresholds..."
   echo "Minimum throughput (p50): ${MIN_THROUGHPUT_P50} tok/sec"
-  echo "Maximum latency (p50): ${MAX_LATENCY_P50} sec"
+echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
 
   EXCLUDED_ENDPOINTS_ERROR=()
   EXCLUDED_NO_US=()

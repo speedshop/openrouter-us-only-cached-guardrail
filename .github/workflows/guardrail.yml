@@ -14,9 +14,9 @@ on:
         default: "50"
         type: string
       max_latency_p50:
-        description: Maximum latency (p50, seconds).
+        description: Maximum latency (p50, ms).
         required: false
-        default: "2"
+        default: "2000"
         type: string
       include_openai:
         description: Include OpenAI models and provider.

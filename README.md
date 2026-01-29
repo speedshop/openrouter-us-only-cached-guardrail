@@ -47,7 +47,7 @@ jobs:
 |-------|----------|---------|-------------|
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
 | `min_throughput_p50` | No | `50` | Minimum throughput (p50, tok/sec) |
-| `max_latency_p50` | No | `2` | Maximum latency (p50, seconds) |
+| `max_latency_p50` | No | `2000` | Maximum latency (p50, ms) |
 | `include_openai` | No | `false` | Include OpenAI models and provider |
 | `include_google` | No | `false` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
@@ -96,7 +96,7 @@ export OPENROUTER_PROVISIONING_KEY="your-key-here"
 The model list is also filtered by endpoint performance (p50 over the last 30 minutes). Only endpoints from US providers count.
 
 - Minimum throughput: 50 tok/sec
-- Maximum latency: 2 sec
+- Maximum latency: 2000 ms
 
 Override with env vars:
 
