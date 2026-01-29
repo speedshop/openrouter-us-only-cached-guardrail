@@ -29,7 +29,7 @@ echo "Filtering for models with caching support..."
 # Filter models:
 # - Has pricing.input_cache_read (indicates caching support)
 # - Excludes openai/google/anthropic by default (toggle via env vars)
-ALL_MODELS=$(echo "$MODELS" | jq '[.data[].id] | sort')
+ALL_MODELS=$(echo "$MODELS" | jq '[.data[].id] | unique | sort')
 CACHED_CANDIDATES=$(echo "$MODELS" | jq '
   [.data[]
     | select(
@@ -38,13 +38,23 @@ CACHED_CANDIDATES=$(echo "$MODELS" | jq '
       )
     | .id
   ]
+  | unique
   | sort
 ')
 
-EXCLUDED_NO_CACHE=$(jq -n \
-  --argjson all "$ALL_MODELS" \
-  --argjson cached "$CACHED_CANDIDATES" \
-  '$all | map(select($cached | index(.) | not))')
+EXCLUDED_NO_CACHE=$(echo "$MODELS" | jq '
+  def cached_ids:
+    [.data[]
+      | select(
+          .pricing.input_cache_read != null
+          and .pricing.input_cache_read != "0"
+        )
+      | .id
+    ]
+    | unique;
+  def all_ids: [.data[].id] | unique;
+  (all_ids - cached_ids) | sort
+')
 
 echo "Excluded (no caching support):"
 echo "$EXCLUDED_NO_CACHE" | jq -c '.'
@@ -134,7 +144,7 @@ echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
           | map(select(type == "object"));
         endpoint_objects
         | map(select(
-            (.tag? // "") as $tag
+            (.tag? // "" | split("/")[0]) as $tag
             | ($us_providers | index($tag))
           ))
         | length
@@ -159,7 +169,7 @@ echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
         | map(select(
             (.throughput_last_30m.p50? // -1) >= $min_tp
             and (.latency_last_30m.p50? // 1e9) <= $max_lat
-            and ((.tag? // "") as $tag | ($us_providers | index($tag)))
+            and ((.tag? // "" | split("/")[0]) as $tag | ($us_providers | index($tag)))
           ))
         | length
       ')
