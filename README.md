@@ -42,7 +42,9 @@ jobs:
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
-| `upload_inputs` | No | `false` | Upload JSON files |
+| `min_throughput_p50` | No | `50` | Minimum throughput (p50, tok/sec) |
+| `max_latency_p50` | No | `2` | Maximum latency (p50, seconds) |
+| `upload_inputs` | No | `false` | Upload JSON files as two artifacts (`us-providers.json`, `cached-models.json`) |
 
 ### Secrets
 
@@ -84,7 +86,7 @@ jobs:
 |-------|----------|---------|-------------|
 | `provisioning_key` | Yes | — | OpenRouter key |
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
-| `upload_inputs` | No | `false` | Upload JSON artifacts |
+| `upload_inputs` | No | `false` | Upload JSON files as two artifacts (`us-providers.json`, `cached-models.json`) |
 
 ## Secrets and vars
 
@@ -100,7 +102,7 @@ Run the scripts to test or debug:
 
 ```bash
 ./scripts/fetch-providers.sh
-./scripts/fetch-cached-models.sh
+OPENROUTER_PROVISIONING_KEY="your-key-here" ./scripts/fetch-cached-models.sh
 
 export OPENROUTER_PROVISIONING_KEY="your-key-here"
 ./scripts/update-guardrail.sh
@@ -115,6 +117,22 @@ Default rules:
 | Name | US Cached Models Only (override with `OPENROUTER_GUARDRAIL_NAME`) |
 | Providers | US only (no OpenAI, no Anthropic) |
 | Models | Must support prompt cache |
+
+## Performance filter
+
+The model list is also filtered by endpoint performance (p50 over the last 30 minutes). Only endpoints from US providers count.
+
+- Minimum throughput: 50 tok/sec
+- Maximum latency: 2 sec
+
+Override with env vars:
+
+- `OPENROUTER_MIN_THROUGHPUT_P50`
+- `OPENROUTER_MAX_LATENCY_P50`
+
+Set these in your workflow or job `env` block.
+If you use the shared workflow, set `min_throughput_p50` and `max_latency_p50` inputs.
+This filter uses the OpenRouter endpoints API, so it needs `OPENROUTER_PROVISIONING_KEY`.
 
 To change these rules, edit the scripts in `scripts/`.
 

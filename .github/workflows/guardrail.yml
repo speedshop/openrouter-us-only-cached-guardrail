@@ -8,6 +8,16 @@ on:
         required: false
         default: US Cached Models Only
         type: string
+      min_throughput_p50:
+        description: Minimum throughput (p50, tok/sec).
+        required: false
+        default: "50"
+        type: string
+      max_latency_p50:
+        description: Maximum latency (p50, seconds).
+        required: false
+        default: "2"
+        type: string
       upload_inputs:
         description: Upload generated provider/model JSON artifacts.
         required: false
@@ -20,9 +30,12 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      OPENROUTER_MIN_THROUGHPUT_P50: ${{ inputs.min_throughput_p50 }}
+      OPENROUTER_MAX_LATENCY_P50: ${{ inputs.max_latency_p50 }}
     steps:
       - name: Update guardrail
-        uses: speedshop/openrouter-us-only-cached-guardrail@v1
+        uses: speedshop/openrouter-us-only-cached-guardrail@v1.1
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ inputs.guardrail_name }}
