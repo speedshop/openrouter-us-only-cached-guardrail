@@ -8,7 +8,7 @@ OpenRouter lets you route requests to many AI providers. A guardrail restricts w
 
 - Only allows US-based providers (for data residency)
 - Only allows models with prompt caching (for cost savings)
-- Excludes OpenAI and Anthropic (use their APIs directly for better pricing)
+- Excludes OpenAI, Google and Anthropic (use their APIs directly)
 
 The guardrail updates daily. New providers and models are added when they appear in the OpenRouter API.
 
