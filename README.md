@@ -4,6 +4,8 @@ This GitHub Action keeps an OpenRouter guardrail up to date. It runs daily and l
 
 ## Why Use This
 
+It's nice to keep up with all of the latest and most interesting models, but you want to do so in a cost-effective and safe way. This action helps you do that.
+
 OpenRouter lets you route requests to many AI providers. A guardrail restricts which providers and models your API key can use. This tool builds a guardrail that:
 
 - Only allows US-based providers (for data residency)
