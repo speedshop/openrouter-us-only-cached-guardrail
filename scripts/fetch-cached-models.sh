@@ -133,10 +133,16 @@ else
 
   if [[ "${#FILTERED_MODELS[@]}" -eq 0 ]]; then
     echo "Warning: no models met the performance thresholds."
+    echo "[]" > "${OUTPUT_DIR}/cached-models.json"
+  else
+    printf '%s\n' "${FILTERED_MODELS[@]}" | jq -R . | jq -s 'sort' > "${OUTPUT_DIR}/cached-models.json"
   fi
 
-  printf '%s\n' "${FILTERED_MODELS[@]}" | jq -R . | jq -s 'sort' > "${OUTPUT_DIR}/cached-models.json"
-  printf '%s\n' "${AVAILABLE_MODELS[@]}" | jq -R . | jq -s 'sort' > "${OUTPUT_DIR}/available-models.json"
+  if [[ "${#AVAILABLE_MODELS[@]}" -eq 0 ]]; then
+    echo "[]" > "${OUTPUT_DIR}/available-models.json"
+  else
+    printf '%s\n' "${AVAILABLE_MODELS[@]}" | jq -R . | jq -s 'sort' > "${OUTPUT_DIR}/available-models.json"
+  fi
 fi
 
 COUNT=$(jq 'length' "${OUTPUT_DIR}/cached-models.json")
