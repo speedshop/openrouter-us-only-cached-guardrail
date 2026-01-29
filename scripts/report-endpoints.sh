@@ -31,7 +31,7 @@ if [[ "${#MODELS[@]}" -eq 0 ]]; then
   exit 0
 fi
 
-echo "model\tprovider\tquantization\tcacheable\tlatency_p50_ms\tthroughput_p50_tps\tpasses"
+echo "model,provider,quantization,cacheable,latency_p50_ms,throughput_p50_tps,passes"
 
 for MODEL_ID in "${MODELS[@]}"; do
   AUTHOR="${MODEL_ID%%/*}"
@@ -68,8 +68,8 @@ for MODEL_ID in "${MODELS[@]}"; do
               ($tp | tostring),
               ($passes | tostring)
             ]
-          | @tsv
+          | @csv
         )
       | .[]
     '
- done
+done
