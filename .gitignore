@@ -1,0 +1,12 @@
+# Generated data files
+providers.json
+cached-models.json
+us-providers.json
+
+# OS files
+.DS_Store
+
+# Editor files
+*.swp
+*.swo
+*~

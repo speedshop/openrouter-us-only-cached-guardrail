@@ -1,0 +1,23 @@
+name: Update OpenRouter Guardrail
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6am UTC
+  workflow_dispatch:      # Manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch providers
+        run: ./scripts/fetch-providers.sh
+
+      - name: Fetch cached models
+        run: ./scripts/fetch-cached-models.sh
+
+      - name: Update guardrail
+        env:
+          OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+        run: ./scripts/update-guardrail.sh
