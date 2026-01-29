@@ -23,7 +23,11 @@ validate_json() {
 }
 
 # Read provider and model lists
-PROVIDERS=$(jq -c '.' "${OUTPUT_DIR}/us-providers.json")
+if [[ -f "${OUTPUT_DIR}/allowed-providers.json" ]]; then
+  PROVIDERS=$(jq -c '.' "${OUTPUT_DIR}/allowed-providers.json")
+else
+  PROVIDERS=$(jq -c '.' "${OUTPUT_DIR}/us-providers.json")
+fi
 MODELS=$(jq -c '.' "${OUTPUT_DIR}/cached-models.json")
 
 echo "Checking for existing guardrail named '${GUARDRAIL_NAME}'..."

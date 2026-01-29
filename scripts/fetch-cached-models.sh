@@ -24,40 +24,11 @@ echo "Fetching models from OpenRouter API..."
 # Fetch all models
 MODELS=$(curl -fsS "https://openrouter.ai/api/v1/models")
 
-echo "Filtering for models with caching support..."
+echo "Filtering for models..."
 
 # Filter models:
-# - Has pricing.input_cache_read (indicates caching support)
 # - Excludes openai/google/anthropic by default (toggle via env vars)
 ALL_MODELS=$(echo "$MODELS" | jq '[.data[].id] | unique | sort')
-CACHED_CANDIDATES=$(echo "$MODELS" | jq '
-  [.data[]
-    | select(
-        .pricing.input_cache_read != null
-        and .pricing.input_cache_read != "0"
-      )
-    | .id
-  ]
-  | unique
-  | sort
-')
-
-EXCLUDED_NO_CACHE=$(echo "$MODELS" | jq '
-  def cached_ids:
-    [.data[]
-      | select(
-          .pricing.input_cache_read != null
-          and .pricing.input_cache_read != "0"
-        )
-      | .id
-    ]
-    | unique;
-  def all_ids: [.data[].id] | unique;
-  (all_ids - cached_ids) | sort
-')
-
-echo "Excluded (no caching support):"
-echo "$EXCLUDED_NO_CACHE" | jq -c '.'
 BASE_MODELS=$(echo "$MODELS" | jq \
   --argjson include_openai "$(bool_json "$INCLUDE_OPENAI")" \
   --argjson include_google "$(bool_json "$INCLUDE_GOOGLE")" \
@@ -65,9 +36,7 @@ BASE_MODELS=$(echo "$MODELS" | jq \
   '
   .data
   | map(select(
-      .pricing.input_cache_read != null
-      and .pricing.input_cache_read != "0"
-      and ($include_anthropic or (.id | startswith("anthropic/") | not))
+      ($include_anthropic or (.id | startswith("anthropic/") | not))
       and ($include_google or (.id | startswith("google/") | not))
       and ($include_openai or (.id | startswith("openai/") | not))
   ))
@@ -76,7 +45,7 @@ BASE_MODELS=$(echo "$MODELS" | jq \
 ')
 
 EXCLUDED_PROVIDER_FILTER=$(jq -n \
-  --argjson cached "$CACHED_CANDIDATES" \
+  --argjson cached "$ALL_MODELS" \
   --argjson base "$BASE_MODELS" \
   '$cached | map(select($base | index(.) | not))')
 
@@ -99,11 +68,13 @@ else
 
   echo "Filtering for endpoints with caching + performance thresholds..."
   echo "Minimum throughput (p50): ${MIN_THROUGHPUT_P50} tok/sec"
-echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
+  echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
 
   EXCLUDED_ENDPOINTS_ERROR=()
   EXCLUDED_NO_US=()
+  EXCLUDED_NO_CACHE=()
   EXCLUDED_PERF=()
+  PROVIDERS_WITH_MATCHES=()
   AVAILABLE_MODELS=()
   FILTERED_MODELS=()
 
@@ -155,6 +126,28 @@ echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
       continue
     fi
 
+    MATCHES_CACHE=$(echo "$BODY" | jq \
+      --argjson us_providers "$US_PROVIDERS" \
+      '
+        def endpoint_objects:
+          (.data.endpoints // [])
+          | if type == "array" then . else [] end
+          | [ .[] | if type == "array" then .[] else . end ]
+          | map(select(type == "object"));
+        endpoint_objects
+        | map(select(
+            ((.tag? // "" | split("/")[0]) as $tag | ($us_providers | index($tag)))
+            and (.pricing.input_cache_read? != null)
+            and (.pricing.input_cache_read? != "0")
+          ))
+        | length
+      ')
+
+    if [[ "$MATCHES_CACHE" -eq 0 ]]; then
+      EXCLUDED_NO_CACHE+=("$MODEL_ID")
+      continue
+    fi
+
     MATCHES_PERF=$(echo "$BODY" | jq \
       --argjson min_tp "$MIN_THROUGHPUT_P50" \
       --argjson max_lat "$MAX_LATENCY_P50" \
@@ -170,6 +163,8 @@ echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
             (.throughput_last_30m.p50? // -1) >= $min_tp
             and (.latency_last_30m.p50? // 1e9) <= $max_lat
             and ((.tag? // "" | split("/")[0]) as $tag | ($us_providers | index($tag)))
+            and (.pricing.input_cache_read? != null)
+            and (.pricing.input_cache_read? != "0")
           ))
         | length
       ')
@@ -177,6 +172,33 @@ echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
     if [[ "$MATCHES_PERF" -gt 0 ]]; then
       FILTERED_MODELS+=("$MODEL_ID")
       AVAILABLE_MODELS+=("$MODEL_ID")
+      MATCHING_PROVIDERS=$(echo "$BODY" | jq -r \
+        --argjson min_tp "$MIN_THROUGHPUT_P50" \
+        --argjson max_lat "$MAX_LATENCY_P50" \
+        --argjson us_providers "$US_PROVIDERS" \
+        '
+          def endpoint_objects:
+            (.data.endpoints // [])
+            | if type == "array" then . else [] end
+            | [ .[] | if type == "array" then .[] else . end ]
+            | map(select(type == "object"));
+          endpoint_objects
+          | map(select(
+              (.throughput_last_30m.p50? // -1) >= $min_tp
+              and (.latency_last_30m.p50? // 1e9) <= $max_lat
+              and ((.tag? // "" | split("/")[0]) as $tag | ($us_providers | index($tag)))
+              and (.pricing.input_cache_read? != null)
+              and (.pricing.input_cache_read? != "0")
+            ))
+          | map(.tag? // "" | split("/")[0])
+          | unique
+          | .[]
+        ')
+      while read -r PROVIDER_TAG; do
+        if [[ -n "$PROVIDER_TAG" ]]; then
+          PROVIDERS_WITH_MATCHES+=("$PROVIDER_TAG")
+        fi
+      done < <(printf '%s\n' "$MATCHING_PROVIDERS")
     else
       EXCLUDED_PERF+=("$MODEL_ID")
     fi
@@ -190,6 +212,11 @@ echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
   if [[ "${#EXCLUDED_NO_US[@]}" -gt 0 ]]; then
     echo "Excluded (no US endpoints):"
     printf '%s\n' "${EXCLUDED_NO_US[@]}" | jq -R . | jq -s 'sort'
+  fi
+
+  if [[ "${#EXCLUDED_NO_CACHE[@]}" -gt 0 ]]; then
+    echo "Excluded (no cacheable US endpoints):"
+    printf '%s\n' "${EXCLUDED_NO_CACHE[@]}" | jq -R . | jq -s 'sort'
   fi
 
   if [[ "${#EXCLUDED_PERF[@]}" -gt 0 ]]; then
@@ -208,6 +235,12 @@ echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
     echo "[]" > "${OUTPUT_DIR}/available-models.json"
   else
     printf '%s\n' "${AVAILABLE_MODELS[@]}" | jq -R . | jq -s 'sort' > "${OUTPUT_DIR}/available-models.json"
+  fi
+
+  if [[ "${#PROVIDERS_WITH_MATCHES[@]}" -eq 0 ]]; then
+    echo "[]" > "${OUTPUT_DIR}/allowed-providers.json"
+  else
+    printf '%s\n' "${PROVIDERS_WITH_MATCHES[@]}" | jq -R . | jq -s 'unique | sort' > "${OUTPUT_DIR}/allowed-providers.json"
   fi
 fi
 

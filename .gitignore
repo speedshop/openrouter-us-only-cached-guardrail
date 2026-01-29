@@ -3,6 +3,7 @@ providers.json
 cached-models.json
 us-providers.json
 available-models.json
+allowed-providers.json
 
 # OS files
 .DS_Store

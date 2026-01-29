@@ -51,7 +51,7 @@ jobs:
 | `include_openai` | No | `false` | Include OpenAI models and provider |
 | `include_google` | No | `false` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
-| `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`) |
+| `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`) |
 
 ### Secrets
 
@@ -69,7 +69,7 @@ jobs:
 | `include_openai` | No | `false` | Include OpenAI models and provider |
 | `include_google` | No | `false` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
-| `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`) |
+| `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`) |
 
 ## Secrets and vars
 
@@ -116,7 +116,7 @@ If you are curious what this repo allows right now, check the artifacts from
 the scheduled workflow in this repo:
 [Demo Update OpenRouter Guardrail](https://github.com/speedshop/openrouter-us-only-cached-guardrail/actions/workflows/demo-update-guardrail.yml).
 The artifacts include
-`available-models.json`, `cached-models.json`, and `us-providers.json`.
+`available-models.json`, `cached-models.json`, `us-providers.json`, and `allowed-providers.json`.
 
 To change these rules, edit the scripts in `scripts/`.
 
