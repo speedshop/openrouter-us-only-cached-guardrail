@@ -1,37 +1,59 @@
 # OpenRouter US-Only Cached Guardrail
 
-A GitHub Action that automatically updates an OpenRouter guardrail daily with US-only providers and cached models.
+This GitHub Action keeps an OpenRouter guardrail up to date. It runs daily and limits API requests to US-based providers with prompt caching.
 
-## What It Does
+## Why Use This
 
-- Fetches US-based providers from OpenRouter (excluding OpenAI and Anthropic)
-- Fetches models that support prompt caching
-- Creates or updates a guardrail named "US Cached Models Only"
-- Runs daily at 6am UTC via GitHub Actions
+OpenRouter lets you route requests to many AI providers. A guardrail restricts which providers and models your API key can use. This tool builds a guardrail that:
+
+- Only allows US-based providers (for data residency)
+- Only allows models with prompt caching (for cost savings)
+- Excludes OpenAI and Anthropic (use their APIs directly for better pricing)
+
+The guardrail updates daily. New providers and models are added when they appear in the OpenRouter API.
 
 ## Setup
 
-1. Clone this repository
-2. Add your `OPENROUTER_PROVISIONING_KEY` as a repository secret
-   - Get your key from https://openrouter.ai/settings/keys
-3. Enable GitHub Actions
-4. Trigger the workflow manually or wait for the daily run
+1. Fork or clone this repository
+2. Add your provisioning key as a repository secret:
+   - Go to **Settings > Secrets > Actions**
+   - Create `OPENROUTER_PROVISIONING_KEY`
+   - Get the key from https://openrouter.ai/settings/keys
+3. Run the workflow from the **Actions** tab
 
-## Manual Execution
+The workflow runs daily at 6am UTC. You can also trigger it by hand.
+
+## Local Use
+
+Run the scripts locally to test or debug:
 
 ```bash
-# Fetch US providers
 ./scripts/fetch-providers.sh
-
-# Fetch cached models
 ./scripts/fetch-cached-models.sh
 
-# Update guardrail (requires OPENROUTER_PROVISIONING_KEY env var)
+export OPENROUTER_PROVISIONING_KEY="your-key-here"
 ./scripts/update-guardrail.sh
 ```
 
-## Guardrail Configuration
+## Configuration
 
-- **Name**: US Cached Models Only
-- **Providers**: All US-based providers except OpenAI and Anthropic
-- **Models**: All models with caching support (excluding anthropic/*, openai/gpt-5*, openai/o*)
+The guardrail uses these settings:
+
+| Setting | Value |
+|---------|-------|
+| Name | US Cached Models Only |
+| Providers | US-based only (no OpenAI, no Anthropic) |
+| Models | Must support prompt caching |
+
+To change these rules, edit the scripts in `scripts/`.
+
+## Directory Structure
+
+```
+.github/workflows/   GitHub Actions workflow
+scripts/             Shell scripts for fetching data and updating guardrails
+```
+
+## Contributing
+
+This is a personal tool. Feel free to fork it for your own use.
