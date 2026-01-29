@@ -1,0 +1,54 @@
+name: OpenRouter US-Only Cached Guardrail
+description: Build and update an OpenRouter guardrail limited to US-based providers with prompt caching.
+branding:
+  icon: shield
+  color: blue
+inputs:
+  provisioning_key:
+    description: OpenRouter provisioning key.
+    required: true
+  guardrail_name:
+    description: Guardrail name.
+    required: false
+    default: US Cached Models Only
+  upload_inputs:
+    description: Upload generated provider/model JSON artifacts.
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Validate provisioning key
+      shell: bash
+      run: |
+        if [[ -z "${{ inputs.provisioning_key }}" ]]; then
+          echo "Missing input: provisioning_key"
+          exit 1
+        fi
+
+    - name: Fetch providers
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: ./scripts/fetch-providers.sh
+
+    - name: Fetch cached models
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: ./scripts/fetch-cached-models.sh
+
+    - name: Upload guardrail inputs
+      if: ${{ inputs.upload_inputs == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: guardrail-inputs
+        path: |
+          ${{ github.action_path }}/us-providers.json
+          ${{ github.action_path }}/cached-models.json
+
+    - name: Update guardrail
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        OPENROUTER_PROVISIONING_KEY: ${{ inputs.provisioning_key }}
+        OPENROUTER_GUARDRAIL_NAME: ${{ inputs.guardrail_name }}
+      run: ./scripts/update-guardrail.sh
