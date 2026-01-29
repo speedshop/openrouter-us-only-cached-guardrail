@@ -17,7 +17,7 @@ jobs:
       OPENROUTER_MAX_LATENCY_P50: "2"
     steps:
       - name: Update guardrail
-        uses: speedshop/openrouter-us-only-cached-guardrail@v1.2
+        uses: speedshop/openrouter-us-only-cached-guardrail@v1.3
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
