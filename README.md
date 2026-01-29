@@ -113,7 +113,9 @@ When `upload_artifacts` is on, the action also writes `available-models.json`.
 It lists models that have at least one endpoint from an allowed US provider.
 
 If you are curious what this repo allows right now, check the artifacts from
-the scheduled workflow in this repo. The artifacts include
+the scheduled workflow in this repo:
+[Demo Update OpenRouter Guardrail](https://github.com/speedshop/openrouter-us-only-cached-guardrail/actions/workflows/demo-update-guardrail.yml).
+The artifacts include
 `available-models.json`, `cached-models.json`, and `us-providers.json`.
 
 To change these rules, edit the scripts in `scripts/`.
