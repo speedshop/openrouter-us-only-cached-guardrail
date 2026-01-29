@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update guardrail
-        uses: <owner>/<repo>@v1
+        uses: speedshop/openrouter-us-only-cached-guardrail@v1
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
