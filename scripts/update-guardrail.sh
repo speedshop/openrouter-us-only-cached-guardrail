@@ -53,16 +53,14 @@ PAYLOAD=$(jq -n \
   --argjson models "$MODELS" \
   '{
     name: $name,
-    allowList: {
-      providers: $providers,
-      models: $models
-    }
+    allowed_providers: $providers,
+    allowed_models: $models
   }')
 
 if [[ -n "$GUARDRAIL_ID" ]]; then
   echo "Found existing guardrail (ID: ${GUARDRAIL_ID}). Updating..."
 
-  RESPONSE=$(curl -fsS -X PUT "${API_BASE}/guardrails/${GUARDRAIL_ID}" \
+  RESPONSE=$(curl -fsS -X PATCH "${API_BASE}/guardrails/${GUARDRAIL_ID}" \
     -H "Authorization: Bearer ${OPENROUTER_PROVISIONING_KEY}" \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD")
