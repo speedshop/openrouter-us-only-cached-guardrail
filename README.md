@@ -14,7 +14,7 @@ OpenRouter lets you route requests to many AI providers. A guardrail restricts w
 
 The guardrail updates daily. New providers and models are added when they appear in the OpenRouter API.
 
-## Use as a GitHub Action
+## Use as a composite action
 
 Add a workflow to any repo you want to run the guardrail update from:
 
@@ -42,13 +42,52 @@ jobs:
           upload_inputs: "true"
 ```
 
-### Inputs
+### Composite action inputs
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `provisioning_key` | Yes | — | OpenRouter provisioning key |
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name override |
 | `upload_inputs` | No | `false` | Upload `us-providers.json` and `cached-models.json` as artifacts |
+
+## Use as a reusable workflow
+
+Call the reusable workflow from another repository:
+
+```yaml
+name: Update OpenRouter Guardrail
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: update-openrouter-guardrail
+  cancel-in-progress: true
+
+jobs:
+  update:
+    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1
+    with:
+      guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
+      upload_inputs: "true"
+    secrets:
+      OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+```
+
+### Reusable workflow inputs
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `guardrail_name` | No | `US Cached Models Only` | Guardrail name override |
+| `upload_inputs` | No | `false` | Upload `us-providers.json` and `cached-models.json` as artifacts |
+
+### Reusable workflow secrets
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `OPENROUTER_PROVISIONING_KEY` | Yes | OpenRouter provisioning key |
 
 ### Required secrets/variables
 
@@ -105,7 +144,7 @@ To change these rules, edit the scripts in `scripts/`.
 ## Directory Structure
 
 ```
-.github/workflows/   GitHub Actions workflow
+.github/workflows/   Reusable GitHub Actions workflow
 action.yml           Reusable GitHub Action (composite)
 scripts/             Shell scripts for fetching data and updating guardrails
 ```

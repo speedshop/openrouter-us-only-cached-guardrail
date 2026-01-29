@@ -1,0 +1,29 @@
+name: Update OpenRouter Guardrail
+
+on:
+  workflow_call:
+    inputs:
+      guardrail_name:
+        description: Guardrail name override.
+        required: false
+        default: US Cached Models Only
+        type: string
+      upload_inputs:
+        description: Upload generated provider/model JSON artifacts.
+        required: false
+        default: "false"
+        type: string
+    secrets:
+      OPENROUTER_PROVISIONING_KEY:
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update guardrail
+        uses: speedshop/openrouter-us-only-cached-guardrail@v1
+        with:
+          provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+          guardrail_name: ${{ inputs.guardrail_name }}
+          upload_inputs: ${{ inputs.upload_inputs }}
