@@ -103,30 +103,13 @@ Override with env vars:
 - `OPENROUTER_MIN_THROUGHPUT_P50`
 - `OPENROUTER_MAX_LATENCY_P50`
 
-Set these in your workflow or job `env` block.
-If you use the shared workflow, set `min_throughput_p50` and `max_latency_p50` inputs.
-This filter uses the OpenRouter endpoints API, so it needs `OPENROUTER_PROVISIONING_KEY`.
-
 ## Available models output
 
-When `upload_artifacts` is on, the action also writes `available-models.json`.
-It lists models that have at least one endpoint from an allowed US provider.
+When `upload_artifacts` is on, the action also writes `available-models.json`, showing the models which make it through the guardrail.
 
 If you are curious what this repo allows right now, check the artifacts from
 the scheduled workflow in this repo:
 [Demo Update OpenRouter Guardrail](https://github.com/speedshop/openrouter-us-only-cached-guardrail/actions/workflows/demo-update-guardrail.yml).
-The artifacts include
-`available-models.json`, `cached-models.json`, `us-providers.json`, and `allowed-providers.json`.
-
-To change these rules, edit the scripts in `scripts/`.
-
-## Directory structure
-
-```
-.github/workflows/   Reusable GitHub Actions workflow
-action.yml           Reusable GitHub Action (composite)
-scripts/             Shell scripts for fetching data and updating guardrails
-```
 
 ## Contributing
 
