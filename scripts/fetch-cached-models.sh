@@ -94,9 +94,14 @@ else
     MATCHES_US=$(echo "$BODY" | jq \
       --argjson us_providers "$US_PROVIDERS" \
       '
-        .data.endpoints // []
+        def endpoint_objects:
+          (.data.endpoints // [])
+          | if type == "array" then . else [] end
+          | [ .[] | if type == "array" then .[] else . end ]
+          | map(select(type == "object"));
+        endpoint_objects
         | map(select(
-            ($us_providers | index(.tag))
+            ($us_providers | index(.tag? // ""))
           ))
         | length
       ')
@@ -106,11 +111,16 @@ else
       --argjson max_lat "$MAX_LATENCY_P50" \
       --argjson us_providers "$US_PROVIDERS" \
       '
-        .data.endpoints // []
+        def endpoint_objects:
+          (.data.endpoints // [])
+          | if type == "array" then . else [] end
+          | [ .[] | if type == "array" then .[] else . end ]
+          | map(select(type == "object"));
+        endpoint_objects
         | map(select(
             (.throughput_last_30m.p50? // -1) >= $min_tp
             and (.latency_last_30m.p50? // 1e9) <= $max_lat
-            and ($us_providers | index(.tag))
+            and ($us_providers | index(.tag? // ""))
           ))
         | length
       ')
