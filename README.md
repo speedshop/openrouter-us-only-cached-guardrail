@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   update:
-    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1
+    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1.1
     with:
       guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
       upload_inputs: "true"
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update guardrail
-        uses: speedshop/openrouter-us-only-cached-guardrail@v1
+        uses: speedshop/openrouter-us-only-cached-guardrail@v1.1
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
@@ -140,4 +140,4 @@ This is a personal tool. You can fork it.
    - `gh release create v1 --title "v1" --notes ""`
 4. In the GitHub Marketplace, list the action (optional).
 
-Use a major tag like `@v1`. Move the tag when you cut a new release.
+Use a major tag like `@v1` or a pinned release like `@v1.1`. Move the tag when you cut a new release.
