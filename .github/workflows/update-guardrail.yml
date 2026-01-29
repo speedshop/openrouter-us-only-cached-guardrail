@@ -5,17 +5,42 @@ on:
     - cron: '0 6 * * *'  # Daily at 6am UTC
   workflow_dispatch:      # Manual trigger
 
+concurrency:
+  group: update-openrouter-guardrail
+  cancel-in-progress: true
+
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      OPENROUTER_GUARDRAIL_NAME: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate provisioning key
+        env:
+          OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+        run: |
+          if [[ -z "${OPENROUTER_PROVISIONING_KEY}" ]]; then
+            echo "Missing OPENROUTER_PROVISIONING_KEY secret."
+            echo "Add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
 
       - name: Fetch providers
         run: ./scripts/fetch-providers.sh
 
       - name: Fetch cached models
         run: ./scripts/fetch-cached-models.sh
+
+      - name: Upload guardrail inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardrail-inputs
+          path: |
+            us-providers.json
+            cached-models.json
 
       - name: Update guardrail
         env:

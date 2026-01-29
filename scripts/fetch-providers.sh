@@ -7,7 +7,7 @@ OUTPUT_DIR="${SCRIPT_DIR}/.."
 echo "Fetching providers from OpenRouter API..."
 
 # Fetch raw provider data
-curl -s "https://openrouter.ai/api/v1/providers" | jq '.' > "${OUTPUT_DIR}/providers.json"
+curl -fsS "https://openrouter.ai/api/v1/providers" | jq '.' > "${OUTPUT_DIR}/providers.json"
 
 # US-based providers (from OpenRouter's provider regions)
 # Excludes: openai, anthropic

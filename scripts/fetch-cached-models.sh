@@ -7,13 +7,13 @@ OUTPUT_DIR="${SCRIPT_DIR}/.."
 echo "Fetching models from OpenRouter API..."
 
 # Fetch all models
-MODELS=$(curl -s "https://openrouter.ai/api/v1/models")
+MODELS=$(curl -fsS "https://openrouter.ai/api/v1/models")
 
 echo "Filtering for models with caching support..."
 
 # Filter models:
 # - Has pricing.input_cache_read (indicates caching support)
-# - Excludes anthropic/* models
+# - Excludes anthropic/*, google/* models (buy direct)
 # - Excludes openai/gpt-5*, openai/o* models (proprietary)
 echo "$MODELS" | jq '
   .data
@@ -21,6 +21,7 @@ echo "$MODELS" | jq '
       .pricing.input_cache_read != null
       and .pricing.input_cache_read != "0"
       and (.id | startswith("anthropic/") | not)
+      and (.id | startswith("google/") | not)
       and (.id | test("^openai/(gpt-5|o[0-9])") | not)
   ))
   | map(.id)

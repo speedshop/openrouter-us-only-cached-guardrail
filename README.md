@@ -19,7 +19,10 @@ The guardrail updates daily. New providers and models are added when they appear
    - Go to **Settings > Secrets > Actions**
    - Create `OPENROUTER_PROVISIONING_KEY`
    - Get the key from https://openrouter.ai/settings/keys
-3. Run the workflow from the **Actions** tab
+3. (Optional) Customize the guardrail name:
+   - Go to **Settings > Secrets and variables > Actions**
+   - Add a variable named `OPENROUTER_GUARDRAIL_NAME`
+4. Run the workflow from the **Actions** tab
 
 The workflow runs daily at 6am UTC. You can also trigger it by hand.
 
@@ -41,7 +44,7 @@ The guardrail uses these settings:
 
 | Setting | Value |
 |---------|-------|
-| Name | US Cached Models Only |
+| Name | US Cached Models Only (override with `OPENROUTER_GUARDRAIL_NAME`) |
 | Providers | US-based only (no OpenAI, no Anthropic) |
 | Models | Must support prompt caching |
 
