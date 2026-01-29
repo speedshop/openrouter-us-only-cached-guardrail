@@ -1,22 +1,58 @@
 # OpenRouter US-Only Cached Guardrail
 
-This GitHub Action keeps an OpenRouter guardrail up to date. It runs daily and limits API requests to US-based providers with prompt caching.
+Keep a guardrail up to date. It is for OpenRouter. The guardrail allows only US providers. It allows only models with prompt cache. It blocks OpenAI, Google, and Anthropic models. Use those APIs directly.
 
-## Why Use This
+## Why use this
 
-It's nice to keep up with all of the latest and most interesting models, but you want to do so in a cost-effective and safe way. This action helps you do that.
+- Save cash with prompt cache.
+- Keep data in the US.
+- Keep up as new models show up.
 
-OpenRouter lets you route requests to many AI providers. A guardrail restricts which providers and models your API key can use. This tool builds a guardrail that:
+> [!IMPORTANT]
+> This action does not attach API keys to a guardrail. You still need to do that in OpenRouter.
 
-- Only allows US-based providers (for data residency)
-- Only allows models with prompt caching (for cost savings)
-- Excludes OpenAI, Google and Anthropic (use their APIs directly)
+## Use the shared workflow
 
-The guardrail updates daily. New providers and models are added when they appear in the OpenRouter API.
+Call this workflow from another repo:
 
-## Use as a composite action
+```yaml
+name: Update OpenRouter Guardrail
 
-Add a workflow to any repo you want to run the guardrail update from:
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: update-openrouter-guardrail
+  cancel-in-progress: true
+
+jobs:
+  update:
+    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1
+    with:
+      guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
+      upload_inputs: "true"
+    secrets:
+      OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+```
+
+### Inputs
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
+| `upload_inputs` | No | `false` | Upload JSON files |
+
+### Secrets
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `OPENROUTER_PROVISIONING_KEY` | Yes | OpenRouter key |
+
+## Use the action directly
+
+Add a workflow in any repo where you want this to run:
 
 ```yaml
 name: Update OpenRouter Guardrail
@@ -42,84 +78,25 @@ jobs:
           upload_inputs: "true"
 ```
 
-### Composite action inputs
+### Action inputs
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `provisioning_key` | Yes | — | OpenRouter provisioning key |
-| `guardrail_name` | No | `US Cached Models Only` | Guardrail name override |
-| `upload_inputs` | No | `false` | Upload `us-providers.json` and `cached-models.json` as artifacts |
+| `provisioning_key` | Yes | — | OpenRouter key |
+| `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
+| `upload_inputs` | No | `false` | Upload JSON artifacts |
 
-## Use as a reusable workflow
+## Secrets and vars
 
-Call the reusable workflow from another repository:
-
-```yaml
-name: Update OpenRouter Guardrail
-
-on:
-  schedule:
-    - cron: '0 6 * * *'
-  workflow_dispatch:
-
-concurrency:
-  group: update-openrouter-guardrail
-  cancel-in-progress: true
-
-jobs:
-  update:
-    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1
-    with:
-      guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
-      upload_inputs: "true"
-    secrets:
-      OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
-```
-
-### Reusable workflow inputs
-
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `guardrail_name` | No | `US Cached Models Only` | Guardrail name override |
-| `upload_inputs` | No | `false` | Upload `us-providers.json` and `cached-models.json` as artifacts |
-
-### Reusable workflow secrets
-
-| Secret | Required | Description |
-|--------|----------|-------------|
-| `OPENROUTER_PROVISIONING_KEY` | Yes | OpenRouter provisioning key |
-
-### Required secrets/variables
-
-1. Add your provisioning key as a repository secret:
-   - Go to **Settings > Secrets and variables > Actions**
-   - Create `OPENROUTER_PROVISIONING_KEY`
+1. Add `OPENROUTER_PROVISIONING_KEY` as a secret:
+   - **Settings > Secrets and variables > Actions**
    - Get the key from https://openrouter.ai/settings/keys
-2. (Optional) Customize the guardrail name:
-   - Go to **Settings > Secrets and variables > Actions**
-   - Add a variable named `OPENROUTER_GUARDRAIL_NAME`
+2. (Optional) Add `OPENROUTER_GUARDRAIL_NAME` as a variable:
+   - **Settings > Secrets and variables > Actions**
 
-This action **does not** associate any keys with your Guardrail. You need to do that yourself.
+## Local use
 
-## Local Use
-
-1. Fork or clone this repository
-2. Add your provisioning key as a repository secret:
-   - Go to **Settings > Secrets > Actions**
-   - Create `OPENROUTER_PROVISIONING_KEY`
-   - Get the key from https://openrouter.ai/settings/keys
-3. (Optional) Customize the guardrail name:
-   - Go to **Settings > Secrets and variables > Actions**
-   - Add a variable named `OPENROUTER_GUARDRAIL_NAME`
-4. Run the workflow from the **Actions** tab
-
-This action **does not** associate any keys with your Guardrail. You need to do that yourself.
-
-The workflow runs daily at 6am UTC. You can also trigger it by hand.
-
-## Local Use
-
-Run the scripts locally to test or debug:
+Run the scripts to test or debug:
 
 ```bash
 ./scripts/fetch-providers.sh
@@ -129,19 +106,19 @@ export OPENROUTER_PROVISIONING_KEY="your-key-here"
 ./scripts/update-guardrail.sh
 ```
 
-## Configuration
+## Rules
 
-The guardrail uses these settings:
+Default rules:
 
 | Setting | Value |
 |---------|-------|
 | Name | US Cached Models Only (override with `OPENROUTER_GUARDRAIL_NAME`) |
-| Providers | US-based only (no OpenAI, no Anthropic) |
-| Models | Must support prompt caching |
+| Providers | US only (no OpenAI, no Anthropic) |
+| Models | Must support prompt cache |
 
 To change these rules, edit the scripts in `scripts/`.
 
-## Directory Structure
+## Directory structure
 
 ```
 .github/workflows/   Reusable GitHub Actions workflow
@@ -151,16 +128,16 @@ scripts/             Shell scripts for fetching data and updating guardrails
 
 ## Contributing
 
-This is a personal tool. Feel free to fork it for your own use.
+This is a personal tool. You can fork it.
 
-## Publishing the Action
+## Publish the action
 
-1. Make sure the repository is public (required for the Marketplace).
-2. Commit `action.yml` and any supporting files.
+1. Make the repo public (needed for the Marketplace).
+2. Commit `action.yml` and the files it needs.
 3. Create a version tag and release:
    - `git tag -a v1 -m "v1"`
    - `git push origin v1`
    - `gh release create v1 --title "v1" --notes ""`
-4. In the GitHub Marketplace, list the action (optional but recommended).
+4. In the GitHub Marketplace, list the action (optional).
 
-Consumers should pin to a major version tag like `@v1` and you can update that tag as you release new compatible versions.
+Use a major tag like `@v1`. Move the tag when you cut a new release.
