@@ -26,6 +26,8 @@ The guardrail updates daily. New providers and models are added when they appear
    - Add a variable named `OPENROUTER_GUARDRAIL_NAME`
 4. Run the workflow from the **Actions** tab
 
+This action **does not** associate any keys with your Guardrail. You need to do that yourself.
+
 The workflow runs daily at 6am UTC. You can also trigger it by hand.
 
 ## Local Use
