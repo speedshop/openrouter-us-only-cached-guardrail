@@ -28,8 +28,26 @@ echo "Filtering for models with caching support..."
 
 # Filter models:
 # - Has pricing.input_cache_read (indicates caching support)
-# - Excludes anthropic/*, google/* models (buy direct)
-# - Excludes openai/gpt-5*, openai/o* models (proprietary)
+# - Excludes openai/google/anthropic by default (toggle via env vars)
+ALL_MODELS=$(echo "$MODELS" | jq '[.data[].id] | sort')
+CACHED_CANDIDATES=$(echo "$MODELS" | jq '
+  [.data[]
+    | select(
+        .pricing.input_cache_read != null
+        and .pricing.input_cache_read != "0"
+      )
+    | .id
+  ]
+  | sort
+')
+
+EXCLUDED_NO_CACHE=$(jq -n \
+  --argjson all "$ALL_MODELS" \
+  --argjson cached "$CACHED_CANDIDATES" \
+  '$all | map(select($cached | index(.) | not))')
+
+echo "Excluded (no caching support):"
+echo "$EXCLUDED_NO_CACHE" | jq -c '.'
 BASE_MODELS=$(echo "$MODELS" | jq \
   --argjson include_openai "$(bool_json "$INCLUDE_OPENAI")" \
   --argjson include_google "$(bool_json "$INCLUDE_GOOGLE")" \
@@ -47,6 +65,16 @@ BASE_MODELS=$(echo "$MODELS" | jq \
   | sort
 ')
 
+EXCLUDED_PROVIDER_FILTER=$(jq -n \
+  --argjson cached "$CACHED_CANDIDATES" \
+  --argjson base "$BASE_MODELS" \
+  '$cached | map(select($base | index(.) | not))')
+
+if [[ "$(echo "$EXCLUDED_PROVIDER_FILTER" | jq 'length')" -gt 0 ]]; then
+  echo "Excluded (provider allowlist):"
+  echo "$EXCLUDED_PROVIDER_FILTER" | jq -c '.'
+fi
+
 if [[ -z "${OPENROUTER_PROVISIONING_KEY:-}" ]]; then
   echo "Warning: OPENROUTER_PROVISIONING_KEY not set. Skipping performance filter."
   echo "$BASE_MODELS" > "${OUTPUT_DIR}/cached-models.json"
@@ -63,6 +91,9 @@ else
   echo "Minimum throughput (p50): ${MIN_THROUGHPUT_P50} tok/sec"
   echo "Maximum latency (p50): ${MAX_LATENCY_P50} sec"
 
+  EXCLUDED_ENDPOINTS_ERROR=()
+  EXCLUDED_NO_US=()
+  EXCLUDED_PERF=()
   AVAILABLE_MODELS=()
   FILTERED_MODELS=()
 
@@ -83,11 +114,13 @@ else
         exit 1
       fi
       echo "Skipping ${MODEL_ID} (endpoints API returned ${STATUS_CODE})"
+      EXCLUDED_ENDPOINTS_ERROR+=("$MODEL_ID")
       continue
     fi
 
     if ! echo "$BODY" | jq -e '.data.endpoints' >/dev/null; then
       echo "Skipping ${MODEL_ID} (invalid endpoints response)"
+      EXCLUDED_ENDPOINTS_ERROR+=("$MODEL_ID")
       continue
     fi
 
@@ -101,10 +134,16 @@ else
           | map(select(type == "object"));
         endpoint_objects
         | map(select(
-            ($us_providers | index(.tag? // ""))
+            (.tag? // "") as $tag
+            | ($us_providers | index($tag))
           ))
         | length
       ')
+
+    if [[ "$MATCHES_US" -eq 0 ]]; then
+      EXCLUDED_NO_US+=("$MODEL_ID")
+      continue
+    fi
 
     MATCHES_PERF=$(echo "$BODY" | jq \
       --argjson min_tp "$MIN_THROUGHPUT_P50" \
@@ -120,7 +159,7 @@ else
         | map(select(
             (.throughput_last_30m.p50? // -1) >= $min_tp
             and (.latency_last_30m.p50? // 1e9) <= $max_lat
-            and ($us_providers | index(.tag? // ""))
+            and ((.tag? // "") as $tag | ($us_providers | index($tag)))
           ))
         | length
       ')
@@ -128,8 +167,25 @@ else
     if [[ "$MATCHES_PERF" -gt 0 ]]; then
       FILTERED_MODELS+=("$MODEL_ID")
       AVAILABLE_MODELS+=("$MODEL_ID")
+    else
+      EXCLUDED_PERF+=("$MODEL_ID")
     fi
   done < <(echo "$BASE_MODELS" | jq -r '.[]')
+
+  if [[ "${#EXCLUDED_ENDPOINTS_ERROR[@]}" -gt 0 ]]; then
+    echo "Excluded (endpoints error):"
+    printf '%s\n' "${EXCLUDED_ENDPOINTS_ERROR[@]}" | jq -R . | jq -s 'sort'
+  fi
+
+  if [[ "${#EXCLUDED_NO_US[@]}" -gt 0 ]]; then
+    echo "Excluded (no US endpoints):"
+    printf '%s\n' "${EXCLUDED_NO_US[@]}" | jq -R . | jq -s 'sort'
+  fi
+
+  if [[ "${#EXCLUDED_PERF[@]}" -gt 0 ]]; then
+    echo "Excluded (below performance thresholds):"
+    printf '%s\n' "${EXCLUDED_PERF[@]}" | jq -R . | jq -s 'sort'
+  fi
 
   if [[ "${#FILTERED_MODELS[@]}" -eq 0 ]]; then
     echo "Warning: no models met the performance thresholds."
