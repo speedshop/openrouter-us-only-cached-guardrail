@@ -1,0 +1,27 @@
+name: Update OpenRouter Guardrail
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: update-openrouter-guardrail
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      OPENROUTER_MIN_THROUGHPUT_P50: "50"
+      OPENROUTER_MAX_LATENCY_P50: "2"
+    steps:
+      - name: Update guardrail
+        uses: speedshop/openrouter-us-only-cached-guardrail@v1.1
+        with:
+          provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
+          guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
+          include_openai: "false"
+          include_google: "false"
+          include_anthropic: "false"
+          upload_artifacts: "true"
