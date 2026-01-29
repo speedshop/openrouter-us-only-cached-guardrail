@@ -1,12 +1,12 @@
-# OpenRouter US-Only Cached Guardrail
+# Speedshop OpenRouter Coding Agent Guardrail
 
-Keep a guardrail up to date. It is for OpenRouter. The guardrail allows only US providers. It allows only models with prompt cache. It blocks OpenAI, Google, and Anthropic models. Use those APIs directly.
+Create and update opinionated OpenRouter guardrail for trying new models in coding agents. 
 
-## Why use this
+## What This Guardrail Enforces
 
-- Save cash with prompt cache.
-- Keep data in the US.
-- Keep up as new models show up.
+- **Only models with prompt cache**. Coding agents become unusably expensive without this.
+- **Only US-based inference**. Rule of law and security concerns in other jurisdictions.
+- **Minimum latency/throughput**. No likes a slow coding agent.
 
 > [!IMPORTANT]
 > This action does not attach API keys to a guardrail. You still need to do that in OpenRouter.
@@ -35,7 +35,7 @@ jobs:
       include_openai: "false"
       include_google: "false"
       include_anthropic: "false"
-      upload_artifacts: "true"
+      upload_artifacts: "false"
     secrets:
       OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
 ```
@@ -58,36 +58,6 @@ jobs:
 |--------|----------|-------------|
 | `OPENROUTER_PROVISIONING_KEY` | Yes | OpenRouter key |
 
-## Use the action directly
-
-Add a workflow in any repo where you want this to run:
-
-```yaml
-name: Update OpenRouter Guardrail
-
-on:
-  schedule:
-    - cron: '0 6 * * *'
-  workflow_dispatch:
-
-concurrency:
-  group: update-openrouter-guardrail
-  cancel-in-progress: true
-
-jobs:
-  update:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Update guardrail
-        uses: speedshop/openrouter-us-only-cached-guardrail@v1.1
-        with:
-          provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
-          guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
-          include_openai: "false"
-          include_google: "false"
-          include_anthropic: "false"
-          upload_artifacts: "true"
-```
 
 ### Action inputs
 
@@ -158,15 +128,3 @@ scripts/             Shell scripts for fetching data and updating guardrails
 ## Contributing
 
 This is a personal tool. You can fork it.
-
-## Publish the action
-
-1. Make the repo public (needed for the Marketplace).
-2. Commit `action.yml` and the files it needs.
-3. Create a version tag and release:
-   - `git tag -a v1 -m "v1"`
-   - `git push origin v1`
-   - `gh release create v1 --title "v1" --notes ""`
-4. In the GitHub Marketplace, list the action (optional).
-
-Use a major tag like `@v1` or a pinned release like `@v1.1`. Move the tag when you cut a new release.
