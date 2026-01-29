@@ -18,6 +18,21 @@ on:
         required: false
         default: "2"
         type: string
+      include_openai:
+        description: Include OpenAI models and provider.
+        required: false
+        default: "false"
+        type: string
+      include_google:
+        description: Include Google models and providers.
+        required: false
+        default: "false"
+        type: string
+      include_anthropic:
+        description: Include Anthropic models and provider.
+        required: false
+        default: "false"
+        type: string
       upload_artifacts:
         description: Upload generated JSON artifacts.
         required: false
@@ -33,10 +48,16 @@ jobs:
     env:
       OPENROUTER_MIN_THROUGHPUT_P50: ${{ inputs.min_throughput_p50 }}
       OPENROUTER_MAX_LATENCY_P50: ${{ inputs.max_latency_p50 }}
+      OPENROUTER_INCLUDE_OPENAI: ${{ inputs.include_openai }}
+      OPENROUTER_INCLUDE_GOOGLE: ${{ inputs.include_google }}
+      OPENROUTER_INCLUDE_ANTHROPIC: ${{ inputs.include_anthropic }}
     steps:
       - name: Update guardrail
         uses: speedshop/openrouter-us-only-cached-guardrail@v1.1
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ inputs.guardrail_name }}
+          include_openai: ${{ inputs.include_openai }}
+          include_google: ${{ inputs.include_google }}
+          include_anthropic: ${{ inputs.include_anthropic }}
           upload_artifacts: ${{ inputs.upload_artifacts }}

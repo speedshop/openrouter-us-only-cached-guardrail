@@ -11,6 +11,18 @@ inputs:
     description: Guardrail name.
     required: false
     default: US Cached Models Only
+  include_openai:
+    description: Include OpenAI models and provider.
+    required: false
+    default: "false"
+  include_google:
+    description: Include Google models and providers.
+    required: false
+    default: "false"
+  include_anthropic:
+    description: Include Anthropic models and provider.
+    required: false
+    default: "false"
   upload_artifacts:
     description: Upload generated JSON artifacts.
     required: false
@@ -29,6 +41,10 @@ runs:
     - name: Fetch providers
       shell: bash
       working-directory: ${{ github.action_path }}
+      env:
+        OPENROUTER_INCLUDE_OPENAI: ${{ inputs.include_openai }}
+        OPENROUTER_INCLUDE_GOOGLE: ${{ inputs.include_google }}
+        OPENROUTER_INCLUDE_ANTHROPIC: ${{ inputs.include_anthropic }}
       run: ./scripts/fetch-providers.sh
 
     - name: Fetch cached models
@@ -38,6 +54,9 @@ runs:
         OPENROUTER_PROVISIONING_KEY: ${{ inputs.provisioning_key }}
         OPENROUTER_MIN_THROUGHPUT_P50: ${{ env.OPENROUTER_MIN_THROUGHPUT_P50 }}
         OPENROUTER_MAX_LATENCY_P50: ${{ env.OPENROUTER_MAX_LATENCY_P50 }}
+        OPENROUTER_INCLUDE_OPENAI: ${{ inputs.include_openai }}
+        OPENROUTER_INCLUDE_GOOGLE: ${{ inputs.include_google }}
+        OPENROUTER_INCLUDE_ANTHROPIC: ${{ inputs.include_anthropic }}
       run: ./scripts/fetch-cached-models.sh
 
     - name: Upload us-providers.json

@@ -4,13 +4,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_DIR="${SCRIPT_DIR}/.."
 
+is_true() {
+  [[ "${1:-}" == "true" || "${1:-}" == "1" || "${1:-}" == "yes" ]]
+}
+
 echo "Fetching providers from OpenRouter API..."
 
 # Fetch raw provider data
 curl -fsS "https://openrouter.ai/api/v1/providers" | jq '.' > "${OUTPUT_DIR}/providers.json"
 
 # US-based providers (from https://openrouter.ai/providers)
-# Excludes: openai, anthropic
+# Excludes: openai, anthropic, google by default
 US_PROVIDERS=(
   "amazon-bedrock"
   "arcee-ai"
@@ -28,8 +32,6 @@ US_PROVIDERS=(
   "fireworks"
   "friendli"
   "gmicloud"
-  "google-ai-studio"
-  "google-vertex"
   "groq"
   "hyperbolic"
   "modelrun"
@@ -47,7 +49,19 @@ US_PROVIDERS=(
   "xai"
 )
 
-echo "Filtering for US providers (excluding openai, anthropic)..."
+if is_true "${OPENROUTER_INCLUDE_OPENAI:-false}"; then
+  US_PROVIDERS+=("openai")
+fi
+
+if is_true "${OPENROUTER_INCLUDE_ANTHROPIC:-false}"; then
+  US_PROVIDERS+=("anthropic")
+fi
+
+if is_true "${OPENROUTER_INCLUDE_GOOGLE:-false}"; then
+  US_PROVIDERS+=("google-ai-studio" "google-vertex")
+fi
+
+echo "Filtering for US providers..."
 
 # Build jq filter for US providers
 FILTER=$(printf '"%s",' "${US_PROVIDERS[@]}")

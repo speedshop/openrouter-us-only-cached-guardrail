@@ -7,6 +7,17 @@ API_BASE="https://openrouter.ai/api/v1"
 
 MIN_THROUGHPUT_P50="${OPENROUTER_MIN_THROUGHPUT_P50:-50}"
 MAX_LATENCY_P50="${OPENROUTER_MAX_LATENCY_P50:-2}"
+INCLUDE_OPENAI="${OPENROUTER_INCLUDE_OPENAI:-false}"
+INCLUDE_GOOGLE="${OPENROUTER_INCLUDE_GOOGLE:-false}"
+INCLUDE_ANTHROPIC="${OPENROUTER_INCLUDE_ANTHROPIC:-false}"
+
+bool_json() {
+  if [[ "${1:-}" == "true" || "${1:-}" == "1" || "${1:-}" == "yes" ]]; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
 
 echo "Fetching models from OpenRouter API..."
 
@@ -19,14 +30,18 @@ echo "Filtering for models with caching support..."
 # - Has pricing.input_cache_read (indicates caching support)
 # - Excludes anthropic/*, google/* models (buy direct)
 # - Excludes openai/gpt-5*, openai/o* models (proprietary)
-BASE_MODELS=$(echo "$MODELS" | jq '
+BASE_MODELS=$(echo "$MODELS" | jq \
+  --argjson include_openai "$(bool_json "$INCLUDE_OPENAI")" \
+  --argjson include_google "$(bool_json "$INCLUDE_GOOGLE")" \
+  --argjson include_anthropic "$(bool_json "$INCLUDE_ANTHROPIC")" \
+  '
   .data
   | map(select(
       .pricing.input_cache_read != null
       and .pricing.input_cache_read != "0"
-      and (.id | startswith("anthropic/") | not)
-      and (.id | startswith("google/") | not)
-      and (.id | test("^openai/(gpt-5|o[0-9])") | not)
+      and ($include_anthropic or (.id | startswith("anthropic/") | not))
+      and ($include_google or (.id | startswith("google/") | not))
+      and ($include_openai or (.id | startswith("openai/") | not))
   ))
   | map(.id)
   | sort

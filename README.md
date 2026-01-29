@@ -32,6 +32,9 @@ jobs:
     uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1.1
     with:
       guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
+      include_openai: "false"
+      include_google: "false"
+      include_anthropic: "false"
       upload_artifacts: "true"
     secrets:
       OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
@@ -44,6 +47,9 @@ jobs:
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
 | `min_throughput_p50` | No | `50` | Minimum throughput (p50, tok/sec) |
 | `max_latency_p50` | No | `2` | Maximum latency (p50, seconds) |
+| `include_openai` | No | `false` | Include OpenAI models and provider |
+| `include_google` | No | `false` | Include Google models and providers |
+| `include_anthropic` | No | `false` | Include Anthropic models and provider |
 | `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`) |
 
 ### Secrets
@@ -77,6 +83,9 @@ jobs:
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
+          include_openai: "false"
+          include_google: "false"
+          include_anthropic: "false"
           upload_artifacts: "true"
 ```
 
@@ -86,6 +95,9 @@ jobs:
 |-------|----------|---------|-------------|
 | `provisioning_key` | Yes | — | OpenRouter key |
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
+| `include_openai` | No | `false` | Include OpenAI models and provider |
+| `include_google` | No | `false` | Include Google models and providers |
+| `include_anthropic` | No | `false` | Include Anthropic models and provider |
 | `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`) |
 
 ## Secrets and vars
@@ -115,7 +127,7 @@ Default rules:
 | Setting | Value |
 |---------|-------|
 | Name | US Cached Models Only (override with `OPENROUTER_GUARDRAIL_NAME`) |
-| Providers | US only (no OpenAI, no Anthropic) |
+| Providers | US only (OpenAI/Google/Anthropic excluded by default) |
 | Models | Must support prompt cache |
 
 ## Performance filter
