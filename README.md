@@ -120,16 +120,6 @@ export OPENROUTER_PROVISIONING_KEY="your-key-here"
 ./scripts/update-guardrail.sh
 ```
 
-## Rules
-
-Default rules:
-
-| Setting | Value |
-|---------|-------|
-| Name | US Cached Models Only (override with `OPENROUTER_GUARDRAIL_NAME`) |
-| Providers | US only (OpenAI/Google/Anthropic excluded by default) |
-| Models | Must support prompt cache |
-
 ## Performance filter
 
 The model list is also filtered by endpoint performance (p50 over the last 30 minutes). Only endpoints from US providers count.
