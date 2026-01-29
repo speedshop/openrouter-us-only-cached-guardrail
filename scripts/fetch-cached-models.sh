@@ -19,7 +19,7 @@ echo "Filtering for models with caching support..."
 # - Has pricing.input_cache_read (indicates caching support)
 # - Excludes anthropic/*, google/* models (buy direct)
 # - Excludes openai/gpt-5*, openai/o* models (proprietary)
-CACHED_MODELS=$(echo "$MODELS" | jq '
+BASE_MODELS=$(echo "$MODELS" | jq '
   .data
   | map(select(
       .pricing.input_cache_read != null
@@ -34,7 +34,8 @@ CACHED_MODELS=$(echo "$MODELS" | jq '
 
 if [[ -z "${OPENROUTER_PROVISIONING_KEY:-}" ]]; then
   echo "Warning: OPENROUTER_PROVISIONING_KEY not set. Skipping performance filter."
-  echo "$CACHED_MODELS" > "${OUTPUT_DIR}/cached-models.json"
+  echo "$BASE_MODELS" > "${OUTPUT_DIR}/cached-models.json"
+  echo "$BASE_MODELS" > "${OUTPUT_DIR}/available-models.json"
 else
   if [[ ! -f "${OUTPUT_DIR}/us-providers.json" ]]; then
     echo "Error: us-providers.json not found. Run ./scripts/fetch-providers.sh first."
@@ -47,6 +48,7 @@ else
   echo "Minimum throughput (p50): ${MIN_THROUGHPUT_P50} tok/sec"
   echo "Maximum latency (p50): ${MAX_LATENCY_P50} sec"
 
+  AVAILABLE_MODELS=()
   FILTERED_MODELS=()
 
   while read -r MODEL_ID; do
@@ -74,7 +76,17 @@ else
       continue
     fi
 
-    MATCHES=$(echo "$BODY" | jq \
+    MATCHES_US=$(echo "$BODY" | jq \
+      --argjson us_providers "$US_PROVIDERS" \
+      '
+        .data.endpoints // []
+        | map(select(
+            ($us_providers | index(.tag))
+          ))
+        | length
+      ')
+
+    MATCHES_PERF=$(echo "$BODY" | jq \
       --argjson min_tp "$MIN_THROUGHPUT_P50" \
       --argjson max_lat "$MAX_LATENCY_P50" \
       --argjson us_providers "$US_PROVIDERS" \
@@ -88,16 +100,18 @@ else
         | length
       ')
 
-    if [[ "$MATCHES" -gt 0 ]]; then
+    if [[ "$MATCHES_PERF" -gt 0 ]]; then
       FILTERED_MODELS+=("$MODEL_ID")
+      AVAILABLE_MODELS+=("$MODEL_ID")
     fi
-  done < <(echo "$CACHED_MODELS" | jq -r '.[]')
+  done < <(echo "$BASE_MODELS" | jq -r '.[]')
 
   if [[ "${#FILTERED_MODELS[@]}" -eq 0 ]]; then
     echo "Warning: no models met the performance thresholds."
   fi
 
   printf '%s\n' "${FILTERED_MODELS[@]}" | jq -R . | jq -s 'sort' > "${OUTPUT_DIR}/cached-models.json"
+  printf '%s\n' "${AVAILABLE_MODELS[@]}" | jq -R . | jq -s 'sort' > "${OUTPUT_DIR}/available-models.json"
 fi
 
 COUNT=$(jq 'length' "${OUTPUT_DIR}/cached-models.json")

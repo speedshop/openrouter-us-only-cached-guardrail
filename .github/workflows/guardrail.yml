@@ -18,8 +18,8 @@ on:
         required: false
         default: "2"
         type: string
-      upload_inputs:
-        description: Upload generated provider/model JSON artifacts.
+      upload_artifacts:
+        description: Upload generated JSON artifacts.
         required: false
         default: "false"
         type: string
@@ -39,4 +39,4 @@ jobs:
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ inputs.guardrail_name }}
-          upload_inputs: ${{ inputs.upload_inputs }}
+          upload_artifacts: ${{ inputs.upload_artifacts }}

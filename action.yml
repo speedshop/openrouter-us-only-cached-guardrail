@@ -11,8 +11,8 @@ inputs:
     description: Guardrail name.
     required: false
     default: US Cached Models Only
-  upload_inputs:
-    description: Upload generated provider/model JSON artifacts.
+  upload_artifacts:
+    description: Upload generated JSON artifacts.
     required: false
     default: "false"
 runs:
@@ -41,18 +41,25 @@ runs:
       run: ./scripts/fetch-cached-models.sh
 
     - name: Upload us-providers.json
-      if: ${{ inputs.upload_inputs == 'true' }}
+      if: ${{ inputs.upload_artifacts == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: us-providers.json
         path: ${{ github.action_path }}/us-providers.json
 
     - name: Upload cached-models.json
-      if: ${{ inputs.upload_inputs == 'true' }}
+      if: ${{ inputs.upload_artifacts == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: cached-models.json
         path: ${{ github.action_path }}/cached-models.json
+
+    - name: Upload available-models.json
+      if: ${{ inputs.upload_artifacts == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: available-models.json
+        path: ${{ github.action_path }}/available-models.json
 
     - name: Update guardrail
       shell: bash

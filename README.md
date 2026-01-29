@@ -32,7 +32,7 @@ jobs:
     uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1.1
     with:
       guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
-      upload_inputs: "true"
+      upload_artifacts: "true"
     secrets:
       OPENROUTER_PROVISIONING_KEY: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
 ```
@@ -44,7 +44,7 @@ jobs:
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
 | `min_throughput_p50` | No | `50` | Minimum throughput (p50, tok/sec) |
 | `max_latency_p50` | No | `2` | Maximum latency (p50, seconds) |
-| `upload_inputs` | No | `false` | Upload JSON files as two artifacts (`us-providers.json`, `cached-models.json`) |
+| `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`) |
 
 ### Secrets
 
@@ -77,7 +77,7 @@ jobs:
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
-          upload_inputs: "true"
+          upload_artifacts: "true"
 ```
 
 ### Action inputs
@@ -86,7 +86,7 @@ jobs:
 |-------|----------|---------|-------------|
 | `provisioning_key` | Yes | — | OpenRouter key |
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
-| `upload_inputs` | No | `false` | Upload JSON files as two artifacts (`us-providers.json`, `cached-models.json`) |
+| `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`) |
 
 ## Secrets and vars
 
@@ -133,6 +133,11 @@ Override with env vars:
 Set these in your workflow or job `env` block.
 If you use the shared workflow, set `min_throughput_p50` and `max_latency_p50` inputs.
 This filter uses the OpenRouter endpoints API, so it needs `OPENROUTER_PROVISIONING_KEY`.
+
+## Available models output
+
+When `upload_artifacts` is on, the action also writes `available-models.json`.
+It lists models that have at least one endpoint from an allowed US provider.
 
 To change these rules, edit the scripts in `scripts/`.
 
