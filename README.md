@@ -6,7 +6,7 @@ Create and update opinionated OpenRouter guardrail for trying new models in codi
 
 - **Only models with prompt cache**. Coding agents become unusably expensive without this.
 - **Only US-based inference**. Rule of law and security concerns in other jurisdictions.
-- **Minimum latency/throughput**. No likes a slow coding agent.
+- **Minimum latency/throughput**. Nobody likes a slow coding agent.
 - **No OpenAI, Google or Anthropic**. Don't accidentally pay a bunch of money for stuff you should have bought a Max plan for.
 
 > [!IMPORTANT]
