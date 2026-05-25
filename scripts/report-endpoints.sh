@@ -95,7 +95,7 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
         | inferred_parameter_size as $params
         | model_provider_allowed as $model_provider_allowed
         | reasoning_supported as $reasoning_supported
-        | ((.context_length? | tonumber? // 0) >= 250000) as $context_window_ok
+        | ((.context_length? | tonumber? // 0) >= 128000) as $context_window_ok
         | [
             .id,
             (.name? // ""),
@@ -180,7 +180,7 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
       | ($m | inferred_parameter_size) as $params
       | ($m | model_provider_allowed) as $model_provider_allowed
       | ($m | reasoning_supported) as $reasoning_supported
-      | (($m.context_length? | tonumber? // 0) >= 250000) as $context_window_ok
+      | (($m.context_length? | tonumber? // 0) >= 128000) as $context_window_ok
       | endpoint_objects
       | if length == 0 then [null] else . end
       | map(
@@ -191,8 +191,17 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
           | ($e != null and $e.pricing.input_cache_read? != null and $e.pricing.input_cache_read? != "0") as $cacheable
           | ($e.latency_last_30m.p50? // null) as $lat
           | ($e.throughput_last_30m.p50? // null) as $tp
-          | ($lat != null and $lat <= $max_lat) as $latency_p50_ok
-          | ($tp != null and $tp >= $min_tp) as $throughput_p50_ok
+          # Mercury 2 and Google Flash models can have null public endpoint perf fields
+          # even when provider pages expose healthy routing heuristics.
+          | (
+              ($m.id == "inception/mercury-2")
+              or (
+                (($m.id | startswith("google/")) or ($m.id | startswith("~google/")))
+                and ($m.id | ascii_downcase | contains("flash"))
+              )
+            ) as $performance_exempt
+          | ($performance_exempt or ($lat != null and $lat <= $max_lat)) as $latency_p50_ok
+          | ($performance_exempt or ($tp != null and $tp >= $min_tp)) as $throughput_p50_ok
           | (
               $model_provider_allowed
               and $reasoning_supported
