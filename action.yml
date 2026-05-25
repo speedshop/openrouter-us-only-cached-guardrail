@@ -24,7 +24,7 @@ inputs:
     required: false
     default: "false"
   upload_artifacts:
-    description: Upload generated JSON artifacts, including available model details with inferred parameter sizes.
+    description: Upload generated JSON and CSV artifacts, including available model details with inferred parameter sizes.
     required: false
     default: "false"
 runs:
@@ -59,6 +59,16 @@ runs:
         OPENROUTER_INCLUDE_ANTHROPIC: ${{ inputs.include_anthropic }}
       run: ./scripts/fetch-cached-models.sh
 
+    - name: Write endpoint report
+      if: ${{ inputs.upload_artifacts == 'true' }}
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        OPENROUTER_PROVISIONING_KEY: ${{ inputs.provisioning_key }}
+        OPENROUTER_MIN_THROUGHPUT_P50: ${{ env.OPENROUTER_MIN_THROUGHPUT_P50 }}
+        OPENROUTER_MAX_LATENCY_P50: ${{ env.OPENROUTER_MAX_LATENCY_P50 }}
+      run: ./scripts/report-endpoints.sh > endpoint-report.csv
+
     - name: Upload us-providers.json
       if: ${{ inputs.upload_artifacts == 'true' }}
       uses: actions/upload-artifact@v4
@@ -86,6 +96,13 @@ runs:
       with:
         name: allowed-providers.json
         path: ${{ github.action_path }}/allowed-providers.json
+
+    - name: Upload endpoint-report.csv
+      if: ${{ inputs.upload_artifacts == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: endpoint-report.csv
+        path: ${{ github.action_path }}/endpoint-report.csv
 
     - name: Update guardrail
       shell: bash
