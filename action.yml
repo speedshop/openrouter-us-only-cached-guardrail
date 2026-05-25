@@ -67,6 +67,9 @@ runs:
         OPENROUTER_PROVISIONING_KEY: ${{ inputs.provisioning_key }}
         OPENROUTER_MIN_THROUGHPUT_P50: ${{ env.OPENROUTER_MIN_THROUGHPUT_P50 }}
         OPENROUTER_MAX_LATENCY_P50: ${{ env.OPENROUTER_MAX_LATENCY_P50 }}
+        OPENROUTER_INCLUDE_OPENAI: ${{ inputs.include_openai }}
+        OPENROUTER_INCLUDE_GOOGLE: ${{ inputs.include_google }}
+        OPENROUTER_INCLUDE_ANTHROPIC: ${{ inputs.include_anthropic }}
       run: ./scripts/report-endpoints.sh > endpoint-report.csv
 
     - name: Upload us-providers.json

@@ -7,125 +7,223 @@ API_BASE="https://openrouter.ai/api/v1"
 
 MIN_THROUGHPUT_P50="${OPENROUTER_MIN_THROUGHPUT_P50:-50}"
 MAX_LATENCY_P50="${OPENROUTER_MAX_LATENCY_P50:-2000}"
+INCLUDE_OPENAI="${OPENROUTER_INCLUDE_OPENAI:-false}"
+INCLUDE_GOOGLE="${OPENROUTER_INCLUDE_GOOGLE:-true}"
+INCLUDE_ANTHROPIC="${OPENROUTER_INCLUDE_ANTHROPIC:-false}"
+
+bool_json() {
+  if [[ "${1:-}" == "true" || "${1:-}" == "1" || "${1:-}" == "yes" ]]; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
 
 if [[ -z "${OPENROUTER_PROVISIONING_KEY:-}" ]]; then
   echo "Error: OPENROUTER_PROVISIONING_KEY environment variable is required" >&2
   exit 1
 fi
 
-if [[ ! -f "${OUTPUT_DIR}/cached-models.json" ]]; then
-  echo "Error: cached-models.json not found. Run ./scripts/fetch-cached-models.sh first." >&2
+if [[ ! -f "${OUTPUT_DIR}/us-providers.json" ]]; then
+  echo "Error: us-providers.json not found. Run ./scripts/fetch-providers.sh first." >&2
   exit 1
 fi
 
-if [[ ! -f "${OUTPUT_DIR}/allowed-providers.json" ]]; then
-  echo "Error: allowed-providers.json not found. Run ./scripts/fetch-cached-models.sh first." >&2
-  exit 1
-fi
+US_PROVIDERS=$(jq -c '.' "${OUTPUT_DIR}/us-providers.json")
+MODELS_RESPONSE=$(curl -fsS "${API_BASE}/models")
 
-CACHED_MODELS=$(jq -c '.' "${OUTPUT_DIR}/cached-models.json")
-MODELS=( $(echo "$CACHED_MODELS" | jq -r '.[]') )
-US_PROVIDERS=$(jq -c '.' "${OUTPUT_DIR}/allowed-providers.json")
-
-HEADER="model,parameter_size,parameter_count_billions,provider,quantization,cacheable,latency_p50_ms,throughput_p50_tps"
+HEADER="model,name,parameter_size,parameter_count_billions,context_length,provider,region,quantization,model_provider_allowed,reasoning_supported,context_window_ok,endpoint_api_ok,us_provider_ok,us_region_ok,cacheable,latency_p50_ok,throughput_p50_ok,final_included,latency_p50_ms,throughput_p50_tps"
 echo "$HEADER"
 
-if [[ "${#MODELS[@]}" -eq 0 ]]; then
-  echo "No cached models to report. cached-models.json is empty." >&2
-  exit 0
-fi
+MODEL_IDS=( $(echo "$MODELS_RESPONSE" | jq -r '.data[].id') )
 
-MODEL_DETAILS=$(curl -fsS "${API_BASE}/models" | jq \
-  --argjson selected "$CACHED_MODELS" \
-  '
-    def parameter_match_objects($matches):
-      $matches
-      | map({
-          value: (.captures[] | select(.name == "value") | .string | tonumber),
-          unit: (.captures[] | select(.name == "unit") | .string | ascii_downcase)
-        })
-      | map(. + {
-          parameter_count_billions: (if .unit == "b" then .value else (.value / 1000) end),
-          parameter_size: ((.value | tostring) + (.unit | ascii_upcase))
-        });
-
-    def parameter_matches:
-      (
-        [(.name? // ""), (.hugging_face_id? // ""), (.canonical_slug? // ""), (.id? // "")]
-        | join(" ")
-        | [match("(?i)(^|[^[:alnum:]])(?<value>[0-9]+(?:\\.[0-9]+)?)\\s*b(?:[^[:alnum:]]|$)"; "g")]
-        | parameter_match_objects(map(.captures += [{name: "unit", string: "b", offset: 0, length: 1}]))
-      )
-      +
-      (
-        (.description? // "")
-        | [match("(?i)(^|[^[:alnum:]])(?<value>[0-9]+(?:\\.[0-9]+)?)\\s*(?<unit>[bm])(?:\\s|-)?(?:parameters?|params?)\\b"; "g")]
-        | parameter_match_objects(.)
-      );
-
-    def inferred_parameter_size:
-      (parameter_matches | if length == 0 then null else max_by(.parameter_count_billions) end) as $match
-      | if $match == null then
-          {parameter_size: null, parameter_count_billions: null}
-        else
-          {
-            parameter_size: $match.parameter_size,
-            parameter_count_billions: $match.parameter_count_billions
-          }
-        end;
-
-    .data
-    | map(select(.id as $id | $selected | index($id)))
-    | map({key: .id, value: inferred_parameter_size})
-    | from_entries
-  ')
-
-for MODEL_ID in "${MODELS[@]}"; do
+for MODEL_ID in "${MODEL_IDS[@]}"; do
   AUTHOR="${MODEL_ID%%/*}"
   SLUG="${MODEL_ID#*/}"
+  MODEL_DETAIL=$(echo "$MODELS_RESPONSE" | jq -c --arg model "$MODEL_ID" '.data[] | select(.id == $model)')
 
   RESPONSE=$(curl -sS -H "Authorization: Bearer ${OPENROUTER_PROVISIONING_KEY}" \
+    -w '\n%{http_code}' \
     "${API_BASE}/models/${AUTHOR}/${SLUG}/endpoints")
 
-  PARAMETER_SIZE=$(echo "$MODEL_DETAILS" | jq -r --arg model "$MODEL_ID" '.[$model].parameter_size // ""')
-  PARAMETER_COUNT_BILLIONS=$(echo "$MODEL_DETAILS" | jq -r --arg model "$MODEL_ID" '.[$model].parameter_count_billions // ""')
+  STATUS_CODE="${RESPONSE##*$'\n'}"
+  BODY="${RESPONSE%$'\n'*}"
 
-  echo "$RESPONSE" | jq -r \
-    --arg model "$MODEL_ID" \
-    --arg parameter_size "$PARAMETER_SIZE" \
-    --arg parameter_count_billions "$PARAMETER_COUNT_BILLIONS" \
+  if [[ "$STATUS_CODE" != "200" ]] || ! echo "$BODY" | jq -e '.data.endpoints' >/dev/null 2>&1; then
+    jq -r -n \
+      --argjson model_detail "$MODEL_DETAIL" \
+      --argjson include_openai "$(bool_json "$INCLUDE_OPENAI")" \
+      --argjson include_google "$(bool_json "$INCLUDE_GOOGLE")" \
+      --argjson include_anthropic "$(bool_json "$INCLUDE_ANTHROPIC")" \
+      '
+        def parameter_match_objects($matches):
+          $matches
+          | map({
+              value: (.captures[] | select(.name == "value") | .string | tonumber),
+              unit: (.captures[] | select(.name == "unit") | .string | ascii_downcase)
+            })
+          | map(. + {
+              parameter_count_billions: (if .unit == "b" then .value else (.value / 1000) end),
+              parameter_size: ((.value | tostring) + (.unit | ascii_upcase))
+            });
+        def parameter_matches:
+          (
+            [(.name? // ""), (.hugging_face_id? // ""), (.canonical_slug? // ""), (.id? // "")]
+            | join(" ")
+            | [match("(?i)(^|[^[:alnum:]])(?<value>[0-9]+(?:\\.[0-9]+)?)\\s*b(?:[^[:alnum:]]|$)"; "g")]
+            | parameter_match_objects(map(.captures += [{name: "unit", string: "b", offset: 0, length: 1}]))
+          )
+          +
+          (
+            (.description? // "")
+            | [match("(?i)(^|[^[:alnum:]])(?<value>[0-9]+(?:\\.[0-9]+)?)\\s*(?<unit>[bm])(?:\\s|-)?(?:parameters?|params?)\\b"; "g")]
+            | parameter_match_objects(.)
+          );
+        def inferred_parameter_size:
+          (parameter_matches | if length == 0 then null else max_by(.parameter_count_billions) end) as $match
+          | if $match == null then {parameter_size: null, parameter_count_billions: null}
+            else {parameter_size: $match.parameter_size, parameter_count_billions: $match.parameter_count_billions}
+            end;
+        def reasoning_supported:
+          (((.supported_parameters // []) | index("reasoning")) != null)
+          or (((.supported_parameters // []) | index("include_reasoning")) != null);
+        def model_provider_allowed:
+          ($include_anthropic or (.id | startswith("anthropic/") | not))
+          and ($include_google or (.id | startswith("google/") | not))
+          and ($include_openai or (.id | startswith("openai/") | not));
+        $model_detail
+        | inferred_parameter_size as $params
+        | model_provider_allowed as $model_provider_allowed
+        | reasoning_supported as $reasoning_supported
+        | ((.context_length? | tonumber? // 0) >= 250000) as $context_window_ok
+        | [
+            .id,
+            (.name? // ""),
+            ($params.parameter_size // ""),
+            ($params.parameter_count_billions // ""),
+            (.context_length? // ""),
+            "",
+            "",
+            "",
+            ($model_provider_allowed | tostring),
+            ($reasoning_supported | tostring),
+            ($context_window_ok | tostring),
+            "false",
+            "false",
+            "false",
+            "false",
+            "false",
+            "false",
+            "false",
+            "",
+            ""
+          ]
+        | @csv
+      '
+    continue
+  fi
+
+  echo "$BODY" | jq -r \
+    --argjson model_detail "$MODEL_DETAIL" \
+    --argjson include_openai "$(bool_json "$INCLUDE_OPENAI")" \
+    --argjson include_google "$(bool_json "$INCLUDE_GOOGLE")" \
+    --argjson include_anthropic "$(bool_json "$INCLUDE_ANTHROPIC")" \
     --argjson min_tp "$MIN_THROUGHPUT_P50" \
     --argjson max_lat "$MAX_LATENCY_P50" \
-    --argjson providers "$US_PROVIDERS" \
+    --argjson us_providers "$US_PROVIDERS" \
     '
+      def parameter_match_objects($matches):
+        $matches
+        | map({
+            value: (.captures[] | select(.name == "value") | .string | tonumber),
+            unit: (.captures[] | select(.name == "unit") | .string | ascii_downcase)
+          })
+        | map(. + {
+            parameter_count_billions: (if .unit == "b" then .value else (.value / 1000) end),
+            parameter_size: ((.value | tostring) + (.unit | ascii_upcase))
+          });
+      def parameter_matches:
+        (
+          [(.name? // ""), (.hugging_face_id? // ""), (.canonical_slug? // ""), (.id? // "")]
+          | join(" ")
+          | [match("(?i)(^|[^[:alnum:]])(?<value>[0-9]+(?:\\.[0-9]+)?)\\s*b(?:[^[:alnum:]]|$)"; "g")]
+          | parameter_match_objects(map(.captures += [{name: "unit", string: "b", offset: 0, length: 1}]))
+        )
+        +
+        (
+          (.description? // "")
+          | [match("(?i)(^|[^[:alnum:]])(?<value>[0-9]+(?:\\.[0-9]+)?)\\s*(?<unit>[bm])(?:\\s|-)?(?:parameters?|params?)\\b"; "g")]
+          | parameter_match_objects(.)
+        );
+      def inferred_parameter_size:
+        (parameter_matches | if length == 0 then null else max_by(.parameter_count_billions) end) as $match
+        | if $match == null then {parameter_size: null, parameter_count_billions: null}
+          else {parameter_size: $match.parameter_size, parameter_count_billions: $match.parameter_count_billions}
+          end;
+      def reasoning_supported:
+        (((.supported_parameters // []) | index("reasoning")) != null)
+        or (((.supported_parameters // []) | index("include_reasoning")) != null);
+      def model_provider_allowed:
+        ($include_anthropic or (.id | startswith("anthropic/") | not))
+        and ($include_google or (.id | startswith("google/") | not))
+        and ($include_openai or (.id | startswith("openai/") | not));
       def endpoint_objects:
         (.data.endpoints // [])
         | if type == "array" then . else [] end
         | [ .[] | if type == "array" then .[] else . end ]
         | map(select(type == "object"));
-      def allowed_us_endpoint($providers):
+      def endpoint_parts:
         (.tag? // "" | split("/")) as $parts
-        | ($parts[0]) as $provider
-        | ($parts[1] // "") as $region
-        | ($providers | index($provider))
-        and ($region == "" or ($region | startswith("us")));
-      endpoint_objects
-      | map(select(allowed_us_endpoint($providers)))
+        | {provider: ($parts[0] // ""), region: ($parts[1] // "")};
+
+      $model_detail as $m
+      | ($m | inferred_parameter_size) as $params
+      | ($m | model_provider_allowed) as $model_provider_allowed
+      | ($m | reasoning_supported) as $reasoning_supported
+      | (($m.context_length? | tonumber? // 0) >= 250000) as $context_window_ok
+      | endpoint_objects
+      | if length == 0 then [null] else . end
       | map(
           . as $e
-          | ($e.pricing.input_cache_read? != null and $e.pricing.input_cache_read? != "0") as $cacheable
-          | ($e.latency_last_30m.p50? // 1e9) as $lat
-          | ($e.throughput_last_30m.p50? // -1) as $tp
-          | select($cacheable and $lat <= $max_lat and $tp >= $min_tp)
+          | ($e | endpoint_parts) as $endpoint
+          | ($endpoint.provider as $provider | ($us_providers | index($provider)) != null) as $us_provider_ok
+          | ($endpoint.region == "" or ($endpoint.region | startswith("us"))) as $us_region_ok
+          | ($e != null and $e.pricing.input_cache_read? != null and $e.pricing.input_cache_read? != "0") as $cacheable
+          | ($e.latency_last_30m.p50? // null) as $lat
+          | ($e.throughput_last_30m.p50? // null) as $tp
+          | ($lat != null and $lat <= $max_lat) as $latency_p50_ok
+          | ($tp != null and $tp >= $min_tp) as $throughput_p50_ok
+          | (
+              $model_provider_allowed
+              and $reasoning_supported
+              and $context_window_ok
+              and $us_provider_ok
+              and $us_region_ok
+              and $cacheable
+              and $latency_p50_ok
+              and $throughput_p50_ok
+            ) as $final_included
           | [
-              $model,
-              $parameter_size,
-              $parameter_count_billions,
-              ($e.tag? // ""),
+              $m.id,
+              ($m.name? // ""),
+              ($params.parameter_size // ""),
+              ($params.parameter_count_billions // ""),
+              ($m.context_length? // ""),
+              $endpoint.provider,
+              $endpoint.region,
               ($e.quantization? // ""),
+              ($model_provider_allowed | tostring),
+              ($reasoning_supported | tostring),
+              ($context_window_ok | tostring),
+              "true",
+              ($us_provider_ok | tostring),
+              ($us_region_ok | tostring),
               ($cacheable | tostring),
-              ($lat | tostring),
-              ($tp | tostring)
+              ($latency_p50_ok | tostring),
+              ($throughput_p50_ok | tostring),
+              ($final_included | tostring),
+              ($lat // ""),
+              ($tp // "")
             ]
           | @csv
         )
