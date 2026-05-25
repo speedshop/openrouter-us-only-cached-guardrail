@@ -9,7 +9,7 @@ Create and update opinionated OpenRouter guardrail for trying new models in codi
 - **Only models with prompt cache**. Coding agents become unusably expensive without this.
 - **Only US-based inference**. Rule of law and security concerns in other jurisdictions.
 - **Minimum latency/throughput**. No likes a slow coding agent.
-- **No OpenAI or Anthropic**. Don't accidentally pay a bunch of money for stuff you should have bought a Max plan for.
+- **No OpenAI-provided or Anthropic models by default**. OpenAI OSS models can pass when served by an allowed non-OpenAI provider.
 
 > [!IMPORTANT]
 > This action does not attach API keys to a guardrail. You still need to do that in OpenRouter.
@@ -50,7 +50,7 @@ jobs:
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
 | `min_throughput_p50` | No | `50` | Minimum throughput (p50, tok/sec) |
 | `max_latency_p50` | No | `2000` | Maximum latency (p50, ms) |
-| `include_openai` | No | `false` | Include OpenAI models and provider |
+| `include_openai` | No | `false` | Include the OpenAI provider |
 | `include_google` | No | `true` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
 | `upload_artifacts` | No | `false` | Upload generated artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`, `endpoint-report.csv`) |
@@ -68,7 +68,7 @@ jobs:
 |-------|----------|---------|-------------|
 | `provisioning_key` | Yes | — | OpenRouter key |
 | `guardrail_name` | No | `US Cached Models Only` | Guardrail name |
-| `include_openai` | No | `false` | Include OpenAI models and provider |
+| `include_openai` | No | `false` | Include the OpenAI provider |
 | `include_google` | No | `true` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
 | `upload_artifacts` | No | `false` | Upload generated artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`, `endpoint-report.csv`) |

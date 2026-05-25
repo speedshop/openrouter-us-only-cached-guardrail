@@ -7,7 +7,6 @@ API_BASE="https://openrouter.ai/api/v1"
 
 MIN_THROUGHPUT_P50="${OPENROUTER_MIN_THROUGHPUT_P50:-50}"
 MAX_LATENCY_P50="${OPENROUTER_MAX_LATENCY_P50:-2000}"
-INCLUDE_OPENAI="${OPENROUTER_INCLUDE_OPENAI:-false}"
 INCLUDE_GOOGLE="${OPENROUTER_INCLUDE_GOOGLE:-true}"
 INCLUDE_ANTHROPIC="${OPENROUTER_INCLUDE_ANTHROPIC:-false}"
 
@@ -84,12 +83,12 @@ write_available_models() {
 }
 
 # Filter models:
-# - Excludes openai/anthropic by default; Google is included by default (toggle via env vars)
+# - Excludes Anthropic models by default; Google is included by default (toggle via env vars)
+# - OpenAI is filtered by endpoint provider later so OSS models hosted elsewhere can pass
 # - Requires OpenRouter reasoning/thinking support
 # - Requires a context window of at least 128k tokens
 ALL_MODELS=$(echo "$MODELS" | jq '[.data[].id] | unique | sort')
 PROVIDER_MODELS=$(echo "$MODELS" | jq \
-  --argjson include_openai "$(bool_json "$INCLUDE_OPENAI")" \
   --argjson include_google "$(bool_json "$INCLUDE_GOOGLE")" \
   --argjson include_anthropic "$(bool_json "$INCLUDE_ANTHROPIC")" \
   '
@@ -97,7 +96,6 @@ PROVIDER_MODELS=$(echo "$MODELS" | jq \
   | map(select(
       ($include_anthropic or (.id | startswith("anthropic/") | not))
       and ($include_google or (.id | startswith("google/") | not))
-      and ($include_openai or (.id | startswith("openai/") | not))
   ))
   | map(.id)
   | sort
