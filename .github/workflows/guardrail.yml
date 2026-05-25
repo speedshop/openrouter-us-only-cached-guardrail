@@ -34,7 +34,7 @@ on:
         default: "false"
         type: string
       upload_artifacts:
-        description: Upload generated JSON artifacts, including available model details with inferred parameter sizes.
+        description: Upload generated JSON and CSV artifacts, including available model details with inferred parameter sizes.
         required: false
         default: "false"
         type: string

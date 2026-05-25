@@ -53,7 +53,7 @@ jobs:
 | `include_openai` | No | `false` | Include OpenAI models and provider |
 | `include_google` | No | `true` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
-| `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`) |
+| `upload_artifacts` | No | `false` | Upload generated artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`, `endpoint-report.csv`) |
 
 ### Secrets
 
@@ -71,7 +71,7 @@ jobs:
 | `include_openai` | No | `false` | Include OpenAI models and provider |
 | `include_google` | No | `true` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
-| `upload_artifacts` | No | `false` | Upload JSON files as artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`) |
+| `upload_artifacts` | No | `false` | Upload generated artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`, `endpoint-report.csv`) |
 
 ## Secrets and vars
 
@@ -108,6 +108,8 @@ Override with env vars:
 ## Available models output
 
 When `upload_artifacts` is on, the action also writes `available-models.json`, showing reasoning/thinking models with at least 250k context which make it through the guardrail. Each entry includes the model ID, display name, context length, Hugging Face ID when available, and an inferred parameter size (`parameter_size` and `parameter_count_billions`) when OpenRouter metadata exposes one in the model name, slug, Hugging Face ID, or description.
+
+The action also uploads `endpoint-report.csv`, a per-endpoint report with model size, provider, quantization, cacheability, latency, throughput, and pass/fail status.
 
 If you are curious what this repo allows right now, check the artifacts from
 the scheduled workflow in this repo:
