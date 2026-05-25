@@ -86,7 +86,7 @@ write_available_models() {
 # Filter models:
 # - Excludes openai/anthropic by default; Google is included by default (toggle via env vars)
 # - Requires OpenRouter reasoning/thinking support
-# - Requires a context window of at least 250k tokens
+# - Requires a context window of at least 128k tokens
 ALL_MODELS=$(echo "$MODELS" | jq '[.data[].id] | unique | sort')
 PROVIDER_MODELS=$(echo "$MODELS" | jq \
   --argjson include_openai "$(bool_json "$INCLUDE_OPENAI")" \
@@ -121,7 +121,7 @@ BASE_MODELS=$(echo "$MODELS" | jq \
     .context_length? | tonumber? // 0;
 
   .data
-  | map(select((.id as $id | $reasoning_models | index($id)) and (context_window >= 250000)))
+  | map(select((.id as $id | $reasoning_models | index($id)) and (context_window >= 128000)))
   | map(.id)
   | sort
 ')
@@ -152,7 +152,7 @@ EXCLUDED_CONTEXT_FILTER=$(jq -n \
   '$reasoning | map(select($base | index(.) | not))')
 
 if [[ "$(echo "$EXCLUDED_CONTEXT_FILTER" | jq 'length')" -gt 0 ]]; then
-  echo "Excluded (context window < 250k tokens):"
+  echo "Excluded (context window < 128k tokens):"
   echo "$EXCLUDED_CONTEXT_FILTER" | jq -c '.'
 fi
 
@@ -168,7 +168,7 @@ else
 
   US_PROVIDERS=$(jq -c '.' "${OUTPUT_DIR}/us-providers.json")
 
-  echo "Filtering for endpoints with reasoning/thinking support + 250k context window + caching + performance thresholds..."
+  echo "Filtering for endpoints with reasoning/thinking support + 128k context window + caching + performance thresholds..."
   echo "Minimum throughput (p50): ${MIN_THROUGHPUT_P50} tok/sec"
   echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
 
@@ -261,7 +261,10 @@ else
       continue
     fi
 
+    # Mercury 2 and Google Flash models can have null public endpoint perf fields
+    # even when provider pages expose healthy routing heuristics.
     MATCHES_PERF=$(echo "$BODY" | jq \
+      --arg model_id "$MODEL_ID" \
       --argjson min_tp "$MIN_THROUGHPUT_P50" \
       --argjson max_lat "$MAX_LATENCY_P50" \
       --argjson us_providers "$US_PROVIDERS" \
@@ -277,10 +280,21 @@ else
           | ($parts[1] // "") as $region
           | ($providers | index($provider))
           and ($region == "" or ($region | startswith("us")));
-        endpoint_objects
-        | map(select(
+        def performance_exempt:
+          ($model_id == "inception/mercury-2")
+          or (
+            (($model_id | startswith("google/")) or ($model_id | startswith("~google/")))
+            and ($model_id | ascii_downcase | contains("flash"))
+          );
+        def performance_ok:
+          performance_exempt
+          or (
             (.throughput_last_30m.p50? // -1) >= $min_tp
             and (.latency_last_30m.p50? // 1e9) <= $max_lat
+          );
+        endpoint_objects
+        | map(select(
+            performance_ok
             and allowed_us_endpoint($us_providers)
             and (.pricing.input_cache_read? != null)
             and (.pricing.input_cache_read? != "0")
@@ -292,6 +306,7 @@ else
       FILTERED_MODELS+=("$MODEL_ID")
       AVAILABLE_MODELS+=("$MODEL_ID")
       MATCHING_PROVIDERS=$(echo "$BODY" | jq -r \
+        --arg model_id "$MODEL_ID" \
         --argjson min_tp "$MIN_THROUGHPUT_P50" \
         --argjson max_lat "$MAX_LATENCY_P50" \
         --argjson us_providers "$US_PROVIDERS" \
@@ -307,10 +322,21 @@ else
             | ($parts[1] // "") as $region
             | ($providers | index($provider))
             and ($region == "" or ($region | startswith("us")));
-          endpoint_objects
-          | map(select(
+          def performance_exempt:
+            ($model_id == "inception/mercury-2")
+            or (
+              (($model_id | startswith("google/")) or ($model_id | startswith("~google/")))
+              and ($model_id | ascii_downcase | contains("flash"))
+            );
+          def performance_ok:
+            performance_exempt
+            or (
               (.throughput_last_30m.p50? // -1) >= $min_tp
               and (.latency_last_30m.p50? // 1e9) <= $max_lat
+            );
+          endpoint_objects
+          | map(select(
+              performance_ok
               and allowed_us_endpoint($us_providers)
               and (.pricing.input_cache_read? != null)
               and (.pricing.input_cache_read? != "0")

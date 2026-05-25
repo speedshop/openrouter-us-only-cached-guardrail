@@ -5,7 +5,7 @@ Create and update opinionated OpenRouter guardrail for trying new models in codi
 ## What This Guardrail Enforces
 
 - **Only thinking/reasoning models**. Models must expose OpenRouter `reasoning` or `include_reasoning` support.
-- **Only models with at least 250k context**. Coding agents need room for large repositories and long-running sessions.
+- **Only models with at least 128k context**. Coding agents need room for large repositories and long-running sessions.
 - **Only models with prompt cache**. Coding agents become unusably expensive without this.
 - **Only US-based inference**. Rule of law and security concerns in other jurisdictions.
 - **Minimum latency/throughput**. No likes a slow coding agent.
@@ -107,7 +107,7 @@ Override with env vars:
 
 ## Available models output
 
-When `upload_artifacts` is on, the action also writes `available-models.json`, showing reasoning/thinking models with at least 250k context which make it through the guardrail. Each entry includes the model ID, display name, context length, Hugging Face ID when available, and an inferred parameter size (`parameter_size` and `parameter_count_billions`) when OpenRouter metadata exposes one in the model name, slug, Hugging Face ID, or description.
+When `upload_artifacts` is on, the action also writes `available-models.json`, showing reasoning/thinking models with at least 128k context which make it through the guardrail. Each entry includes the model ID, display name, context length, Hugging Face ID when available, and an inferred parameter size (`parameter_size` and `parameter_count_billions`) when OpenRouter metadata exposes one in the model name, slug, Hugging Face ID, or description.
 
 The action also uploads `endpoint-report.csv`, a per-endpoint report across all OpenRouter models. It includes model size, endpoint metadata, a boolean column for each guardrail check, and `final_included`, which is true only when every check passes.
 
