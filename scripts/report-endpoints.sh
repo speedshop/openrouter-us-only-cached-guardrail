@@ -89,8 +89,7 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
           or (((.supported_parameters // []) | index("include_reasoning")) != null);
         def model_provider_allowed:
           ($include_anthropic or (.id | startswith("anthropic/") | not))
-          and ($include_google or (.id | startswith("google/") | not))
-          and ($include_openai or (.id | startswith("openai/") | not));
+          and ($include_google or (.id | startswith("google/") | not));
         $model_detail
         | inferred_parameter_size as $params
         | model_provider_allowed as $model_provider_allowed
@@ -163,10 +162,11 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
       def reasoning_supported:
         (((.supported_parameters // []) | index("reasoning")) != null)
         or (((.supported_parameters // []) | index("include_reasoning")) != null);
-      def model_provider_allowed:
+      def model_family_allowed:
         ($include_anthropic or (.id | startswith("anthropic/") | not))
-        and ($include_google or (.id | startswith("google/") | not))
-        and ($include_openai or (.id | startswith("openai/") | not));
+        and ($include_google or (.id | startswith("google/") | not));
+      def endpoint_provider_allowed($provider):
+        $include_openai or ($provider != "openai");
       def endpoint_objects:
         (.data.endpoints // [])
         | if type == "array" then . else [] end
@@ -178,7 +178,7 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
 
       $model_detail as $m
       | ($m | inferred_parameter_size) as $params
-      | ($m | model_provider_allowed) as $model_provider_allowed
+      | ($m | model_family_allowed) as $model_family_allowed
       | ($m | reasoning_supported) as $reasoning_supported
       | (($m.context_length? | tonumber? // 0) >= 128000) as $context_window_ok
       | endpoint_objects
@@ -186,6 +186,7 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
       | map(
           . as $e
           | ($e | endpoint_parts) as $endpoint
+          | ($model_family_allowed and endpoint_provider_allowed($endpoint.provider)) as $model_provider_allowed
           | ($endpoint.provider as $provider | ($us_providers | index($provider)) != null) as $us_provider_ok
           | ($endpoint.region == "" or ($endpoint.region | startswith("us"))) as $us_region_ok
           | ($e != null and $e.pricing.input_cache_read? != null and $e.pricing.input_cache_read? != "0") as $cacheable

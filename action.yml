@@ -12,7 +12,7 @@ inputs:
     required: false
     default: US Cached Models Only
   include_openai:
-    description: Include OpenAI models and provider.
+    description: Include the OpenAI provider.
     required: false
     default: "false"
   include_google:
