@@ -172,9 +172,30 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
         | if type == "array" then . else [] end
         | [ .[] | if type == "array" then .[] else . end ]
         | map(select(type == "object"));
+      def non_us_region_suffix:
+        ascii_downcase as $suffix
+        | (
+            (($suffix | test("^[a-z][a-z]($|-)")) and (($suffix | startswith("us")) | not))
+            or ($suffix | startswith("europe"))
+            or ($suffix == "asia")
+            or ($suffix | startswith("asia-"))
+            or ($suffix == "ap")
+            or ($suffix | startswith("ap-"))
+          );
+      def us_region_suffix:
+        ascii_downcase | startswith("us");
       def endpoint_parts:
         (.tag? // "" | split("/")) as $parts
-        | {provider: ($parts[0] // ""), region: ($parts[1] // "")};
+        | ($parts[1:] // []) as $suffixes
+        | {
+            provider: ($parts[0] // ""),
+            region: (
+              $suffixes
+              | map(select((. | us_region_suffix) or (. | non_us_region_suffix)))
+              | first // ""
+            ),
+            has_non_us_region: (($suffixes | map(select(non_us_region_suffix)) | length) > 0)
+          };
 
       $model_detail as $m
       | ($m | inferred_parameter_size) as $params
@@ -188,7 +209,7 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
           | ($e | endpoint_parts) as $endpoint
           | ($model_family_allowed and endpoint_provider_allowed($endpoint.provider)) as $model_provider_allowed
           | ($endpoint.provider as $provider | ($us_providers | index($provider)) != null) as $us_provider_ok
-          | ($endpoint.region == "" or ($endpoint.region | startswith("us"))) as $us_region_ok
+          | ($endpoint.has_non_us_region | not) as $us_region_ok
           | ($e != null and $e.pricing.input_cache_read? != null and $e.pricing.input_cache_read? != "0") as $cacheable
           | ($e.latency_last_30m.p50? // null) as $lat
           | ($e.throughput_last_30m.p50? // null) as $tp

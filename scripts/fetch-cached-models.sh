@@ -213,12 +213,22 @@ else
           | if type == "array" then . else [] end
           | [ .[] | if type == "array" then .[] else . end ]
           | map(select(type == "object"));
+        def non_us_region_suffix:
+          ascii_downcase as $suffix
+          | (
+              (($suffix | test("^[a-z][a-z]($|-)")) and (($suffix | startswith("us")) | not))
+              or ($suffix | startswith("europe"))
+              or ($suffix == "asia")
+              or ($suffix | startswith("asia-"))
+              or ($suffix == "ap")
+              or ($suffix | startswith("ap-"))
+            );
         def allowed_us_endpoint($providers):
           (.tag? // "" | split("/")) as $parts
-          | ($parts[0]) as $provider
-          | ($parts[1] // "") as $region
-          | ($providers | index($provider))
-          and ($region == "" or ($region | startswith("us")));
+          | ($parts[0] // "") as $provider
+          | ($parts[1:] // []) as $suffixes
+          | (($providers | index($provider)) != null)
+            and (($suffixes | map(select(non_us_region_suffix)) | length) == 0);
         endpoint_objects
         | map(select(
             allowed_us_endpoint($us_providers)
@@ -239,12 +249,22 @@ else
           | if type == "array" then . else [] end
           | [ .[] | if type == "array" then .[] else . end ]
           | map(select(type == "object"));
+        def non_us_region_suffix:
+          ascii_downcase as $suffix
+          | (
+              (($suffix | test("^[a-z][a-z]($|-)")) and (($suffix | startswith("us")) | not))
+              or ($suffix | startswith("europe"))
+              or ($suffix == "asia")
+              or ($suffix | startswith("asia-"))
+              or ($suffix == "ap")
+              or ($suffix | startswith("ap-"))
+            );
         def allowed_us_endpoint($providers):
           (.tag? // "" | split("/")) as $parts
-          | ($parts[0]) as $provider
-          | ($parts[1] // "") as $region
-          | ($providers | index($provider))
-          and ($region == "" or ($region | startswith("us")));
+          | ($parts[0] // "") as $provider
+          | ($parts[1:] // []) as $suffixes
+          | (($providers | index($provider)) != null)
+            and (($suffixes | map(select(non_us_region_suffix)) | length) == 0);
         endpoint_objects
         | map(select(
             allowed_us_endpoint($us_providers)
@@ -272,12 +292,22 @@ else
           | if type == "array" then . else [] end
           | [ .[] | if type == "array" then .[] else . end ]
           | map(select(type == "object"));
+        def non_us_region_suffix:
+          ascii_downcase as $suffix
+          | (
+              (($suffix | test("^[a-z][a-z]($|-)")) and (($suffix | startswith("us")) | not))
+              or ($suffix | startswith("europe"))
+              or ($suffix == "asia")
+              or ($suffix | startswith("asia-"))
+              or ($suffix == "ap")
+              or ($suffix | startswith("ap-"))
+            );
         def allowed_us_endpoint($providers):
           (.tag? // "" | split("/")) as $parts
-          | ($parts[0]) as $provider
-          | ($parts[1] // "") as $region
-          | ($providers | index($provider))
-          and ($region == "" or ($region | startswith("us")));
+          | ($parts[0] // "") as $provider
+          | ($parts[1:] // []) as $suffixes
+          | (($providers | index($provider)) != null)
+            and (($suffixes | map(select(non_us_region_suffix)) | length) == 0);
         def performance_exempt:
           ($model_id == "inception/mercury-2")
           or (
@@ -314,12 +344,22 @@ else
             | if type == "array" then . else [] end
             | [ .[] | if type == "array" then .[] else . end ]
             | map(select(type == "object"));
+          def non_us_region_suffix:
+            ascii_downcase as $suffix
+            | (
+                (($suffix | test("^[a-z][a-z]($|-)")) and (($suffix | startswith("us")) | not))
+                or ($suffix | startswith("europe"))
+                or ($suffix == "asia")
+                or ($suffix | startswith("asia-"))
+                or ($suffix == "ap")
+                or ($suffix | startswith("ap-"))
+              );
           def allowed_us_endpoint($providers):
             (.tag? // "" | split("/")) as $parts
-            | ($parts[0]) as $provider
-            | ($parts[1] // "") as $region
-            | ($providers | index($provider))
-            and ($region == "" or ($region | startswith("us")));
+            | ($parts[0] // "") as $provider
+            | ($parts[1:] // []) as $suffixes
+            | (($providers | index($provider)) != null)
+              and (($suffixes | map(select(non_us_region_suffix)) | length) == 0);
           def performance_exempt:
             ($model_id == "inception/mercury-2")
             or (
