@@ -24,7 +24,7 @@ inputs:
     required: false
     default: "false"
   upload_artifacts:
-    description: Upload generated JSON artifacts.
+    description: Upload generated JSON artifacts, including available model details with inferred parameter sizes.
     required: false
     default: "false"
 runs:
