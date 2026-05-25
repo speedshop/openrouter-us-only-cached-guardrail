@@ -1,5 +1,5 @@
 name: OpenRouter US-Only Cached Guardrail
-description: Build and update an OpenRouter guardrail limited to US-based providers with prompt caching.
+description: Build and update an OpenRouter guardrail limited to US-based providers with prompt caching, reasoning support, and large context windows.
 branding:
   icon: shield
   color: blue
