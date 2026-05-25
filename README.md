@@ -95,7 +95,7 @@ export OPENROUTER_PROVISIONING_KEY="your-key-here"
 
 ## Performance filter
 
-The model list is also filtered by endpoint performance (p50 over the last 30 minutes). Only endpoints from US providers count.
+The model list is also filtered by endpoint performance (p50 over the last 30 minutes). Only endpoints from US providers count, and endpoint tags with explicit non-US region suffixes, such as `/eu`, are excluded.
 
 - Minimum throughput: 50 tok/sec
 - Maximum latency: 2000 ms

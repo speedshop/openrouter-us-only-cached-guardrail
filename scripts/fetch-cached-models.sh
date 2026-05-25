@@ -215,10 +215,15 @@ else
           | if type == "array" then . else [] end
           | [ .[] | if type == "array" then .[] else . end ]
           | map(select(type == "object"));
+        def allowed_us_endpoint($providers):
+          (.tag? // "" | split("/")) as $parts
+          | ($parts[0]) as $provider
+          | ($parts[1] // "") as $region
+          | ($providers | index($provider))
+          and ($region == "" or ($region | startswith("us")));
         endpoint_objects
         | map(select(
-            (.tag? // "" | split("/")[0]) as $tag
-            | ($us_providers | index($tag))
+            allowed_us_endpoint($us_providers)
           ))
         | length
       ')
@@ -236,9 +241,15 @@ else
           | if type == "array" then . else [] end
           | [ .[] | if type == "array" then .[] else . end ]
           | map(select(type == "object"));
+        def allowed_us_endpoint($providers):
+          (.tag? // "" | split("/")) as $parts
+          | ($parts[0]) as $provider
+          | ($parts[1] // "") as $region
+          | ($providers | index($provider))
+          and ($region == "" or ($region | startswith("us")));
         endpoint_objects
         | map(select(
-            ((.tag? // "" | split("/")[0]) as $tag | ($us_providers | index($tag)))
+            allowed_us_endpoint($us_providers)
             and (.pricing.input_cache_read? != null)
             and (.pricing.input_cache_read? != "0")
           ))
@@ -260,11 +271,17 @@ else
           | if type == "array" then . else [] end
           | [ .[] | if type == "array" then .[] else . end ]
           | map(select(type == "object"));
+        def allowed_us_endpoint($providers):
+          (.tag? // "" | split("/")) as $parts
+          | ($parts[0]) as $provider
+          | ($parts[1] // "") as $region
+          | ($providers | index($provider))
+          and ($region == "" or ($region | startswith("us")));
         endpoint_objects
         | map(select(
             (.throughput_last_30m.p50? // -1) >= $min_tp
             and (.latency_last_30m.p50? // 1e9) <= $max_lat
-            and ((.tag? // "" | split("/")[0]) as $tag | ($us_providers | index($tag)))
+            and allowed_us_endpoint($us_providers)
             and (.pricing.input_cache_read? != null)
             and (.pricing.input_cache_read? != "0")
           ))
@@ -284,11 +301,17 @@ else
             | if type == "array" then . else [] end
             | [ .[] | if type == "array" then .[] else . end ]
             | map(select(type == "object"));
+          def allowed_us_endpoint($providers):
+            (.tag? // "" | split("/")) as $parts
+            | ($parts[0]) as $provider
+            | ($parts[1] // "") as $region
+            | ($providers | index($provider))
+            and ($region == "" or ($region | startswith("us")));
           endpoint_objects
           | map(select(
               (.throughput_last_30m.p50? // -1) >= $min_tp
               and (.latency_last_30m.p50? // 1e9) <= $max_lat
-              and ((.tag? // "" | split("/")[0]) as $tag | ($us_providers | index($tag)))
+              and allowed_us_endpoint($us_providers)
               and (.pricing.input_cache_read? != null)
               and (.pricing.input_cache_read? != "0")
             ))
