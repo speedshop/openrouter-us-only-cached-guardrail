@@ -109,7 +109,7 @@ Override with env vars:
 
 When `upload_artifacts` is on, the action also writes `available-models.json`, showing reasoning/thinking models with at least 250k context which make it through the guardrail. Each entry includes the model ID, display name, context length, Hugging Face ID when available, and an inferred parameter size (`parameter_size` and `parameter_count_billions`) when OpenRouter metadata exposes one in the model name, slug, Hugging Face ID, or description.
 
-The action also uploads `endpoint-report.csv`, a per-endpoint report with model size, provider, quantization, cacheability, latency, throughput, and pass/fail status.
+The action also uploads `endpoint-report.csv`, a per-endpoint report across all OpenRouter models. It includes model size, endpoint metadata, a boolean column for each guardrail check, and `final_included`, which is true only when every check passes.
 
 If you are curious what this repo allows right now, check the artifacts from
 the scheduled workflow in this repo:
