@@ -28,8 +28,9 @@ echo "Filtering for models..."
 
 # Filter models:
 # - Excludes openai/google/anthropic by default (toggle via env vars)
+# - Requires OpenRouter reasoning/thinking support
 ALL_MODELS=$(echo "$MODELS" | jq '[.data[].id] | unique | sort')
-BASE_MODELS=$(echo "$MODELS" | jq \
+PROVIDER_MODELS=$(echo "$MODELS" | jq \
   --argjson include_openai "$(bool_json "$INCLUDE_OPENAI")" \
   --argjson include_google "$(bool_json "$INCLUDE_GOOGLE")" \
   --argjson include_anthropic "$(bool_json "$INCLUDE_ANTHROPIC")" \
@@ -43,15 +44,37 @@ BASE_MODELS=$(echo "$MODELS" | jq \
   | map(.id)
   | sort
 ')
+BASE_MODELS=$(echo "$MODELS" | jq \
+  --argjson provider_models "$PROVIDER_MODELS" \
+  '
+  def reasoning_model:
+    (((.supported_parameters // []) | index("reasoning")) != null)
+    or (((.supported_parameters // []) | index("include_reasoning")) != null);
+
+  .data
+  | map(select((.id as $id | $provider_models | index($id)) and reasoning_model))
+  | map(.id)
+  | sort
+')
 
 EXCLUDED_PROVIDER_FILTER=$(jq -n \
   --argjson cached "$ALL_MODELS" \
-  --argjson base "$BASE_MODELS" \
-  '$cached | map(select($base | index(.) | not))')
+  --argjson provider "$PROVIDER_MODELS" \
+  '$cached | map(select($provider | index(.) | not))')
 
 if [[ "$(echo "$EXCLUDED_PROVIDER_FILTER" | jq 'length')" -gt 0 ]]; then
   echo "Excluded (provider allowlist):"
   echo "$EXCLUDED_PROVIDER_FILTER" | jq -c '.'
+fi
+
+EXCLUDED_REASONING_FILTER=$(jq -n \
+  --argjson provider "$PROVIDER_MODELS" \
+  --argjson base "$BASE_MODELS" \
+  '$provider | map(select($base | index(.) | not))')
+
+if [[ "$(echo "$EXCLUDED_REASONING_FILTER" | jq 'length')" -gt 0 ]]; then
+  echo "Excluded (no reasoning/thinking support):"
+  echo "$EXCLUDED_REASONING_FILTER" | jq -c '.'
 fi
 
 if [[ -z "${OPENROUTER_PROVISIONING_KEY:-}" ]]; then
@@ -66,7 +89,7 @@ else
 
   US_PROVIDERS=$(jq -c '.' "${OUTPUT_DIR}/us-providers.json")
 
-  echo "Filtering for endpoints with caching + performance thresholds..."
+  echo "Filtering for endpoints with reasoning/thinking support + caching + performance thresholds..."
   echo "Minimum throughput (p50): ${MIN_THROUGHPUT_P50} tok/sec"
   echo "Maximum latency (p50): ${MAX_LATENCY_P50} ms"
 

@@ -4,6 +4,7 @@ Create and update opinionated OpenRouter guardrail for trying new models in codi
 
 ## What This Guardrail Enforces
 
+- **Only thinking/reasoning models**. Models must expose OpenRouter `reasoning` or `include_reasoning` support.
 - **Only models with prompt cache**. Coding agents become unusably expensive without this.
 - **Only US-based inference**. Rule of law and security concerns in other jurisdictions.
 - **Minimum latency/throughput**. No likes a slow coding agent.
@@ -105,7 +106,7 @@ Override with env vars:
 
 ## Available models output
 
-When `upload_artifacts` is on, the action also writes `available-models.json`, showing the models which make it through the guardrail.
+When `upload_artifacts` is on, the action also writes `available-models.json`, showing reasoning/thinking models which make it through the guardrail.
 
 If you are curious what this repo allows right now, check the artifacts from
 the scheduled workflow in this repo:
