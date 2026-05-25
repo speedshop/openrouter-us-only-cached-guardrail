@@ -18,7 +18,7 @@ inputs:
   include_google:
     description: Include Google models and providers.
     required: false
-    default: "false"
+    default: "true"
   include_anthropic:
     description: Include Anthropic models and provider.
     required: false

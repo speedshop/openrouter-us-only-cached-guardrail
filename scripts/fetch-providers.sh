@@ -14,7 +14,7 @@ echo "Fetching providers from OpenRouter API..."
 curl -fsS "https://openrouter.ai/api/v1/providers" | jq '.' > "${OUTPUT_DIR}/providers.json"
 
 # US-based providers (from https://openrouter.ai/providers)
-# Excludes: openai, anthropic, google by default
+# Excludes: openai, anthropic by default. Google is included by default.
 US_PROVIDERS=(
   "amazon-bedrock"
   "arcee-ai"
@@ -57,7 +57,7 @@ if is_true "${OPENROUTER_INCLUDE_ANTHROPIC:-false}"; then
   US_PROVIDERS+=("anthropic")
 fi
 
-if is_true "${OPENROUTER_INCLUDE_GOOGLE:-false}"; then
+if is_true "${OPENROUTER_INCLUDE_GOOGLE:-true}"; then
   US_PROVIDERS+=("google-ai-studio" "google-vertex")
 fi
 

@@ -8,7 +8,7 @@ API_BASE="https://openrouter.ai/api/v1"
 MIN_THROUGHPUT_P50="${OPENROUTER_MIN_THROUGHPUT_P50:-50}"
 MAX_LATENCY_P50="${OPENROUTER_MAX_LATENCY_P50:-2000}"
 INCLUDE_OPENAI="${OPENROUTER_INCLUDE_OPENAI:-false}"
-INCLUDE_GOOGLE="${OPENROUTER_INCLUDE_GOOGLE:-false}"
+INCLUDE_GOOGLE="${OPENROUTER_INCLUDE_GOOGLE:-true}"
 INCLUDE_ANTHROPIC="${OPENROUTER_INCLUDE_ANTHROPIC:-false}"
 
 bool_json() {
@@ -84,7 +84,7 @@ write_available_models() {
 }
 
 # Filter models:
-# - Excludes openai/google/anthropic by default (toggle via env vars)
+# - Excludes openai/anthropic by default; Google is included by default (toggle via env vars)
 # - Requires OpenRouter reasoning/thinking support
 # - Requires a context window of at least 250k tokens
 ALL_MODELS=$(echo "$MODELS" | jq '[.data[].id] | unique | sort')
