@@ -27,7 +27,7 @@ CACHED_MODELS=$(jq -c '.' "${OUTPUT_DIR}/cached-models.json")
 MODELS=( $(echo "$CACHED_MODELS" | jq -r '.[]') )
 US_PROVIDERS=$(jq -c '.' "${OUTPUT_DIR}/allowed-providers.json")
 
-HEADER="model,parameter_size,parameter_count_billions,provider,quantization,cacheable,latency_p50_ms,throughput_p50_tps,passes"
+HEADER="model,parameter_size,parameter_count_billions,provider,quantization,cacheable,latency_p50_ms,throughput_p50_tps"
 echo "$HEADER"
 
 if [[ "${#MODELS[@]}" -eq 0 ]]; then
@@ -110,7 +110,7 @@ for MODEL_ID in "${MODELS[@]}"; do
           | ($e.pricing.input_cache_read? != null and $e.pricing.input_cache_read? != "0") as $cacheable
           | ($e.latency_last_30m.p50? // 1e9) as $lat
           | ($e.throughput_last_30m.p50? // -1) as $tp
-          | ($cacheable and $lat <= $max_lat and $tp >= $min_tp) as $passes
+          | select($cacheable and $lat <= $max_lat and $tp >= $min_tp)
           | [
               $model,
               $parameter_size,
@@ -119,8 +119,7 @@ for MODEL_ID in "${MODELS[@]}"; do
               ($e.quantization? // ""),
               ($cacheable | tostring),
               ($lat | tostring),
-              ($tp | tostring),
-              ($passes | tostring)
+              ($tp | tostring)
             ]
           | @csv
         )
