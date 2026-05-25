@@ -53,7 +53,7 @@ jobs:
       OPENROUTER_INCLUDE_ANTHROPIC: ${{ inputs.include_anthropic }}
     steps:
       - name: Update guardrail
-        uses: speedshop/openrouter-us-only-cached-guardrail@v1.1
+        uses: speedshop/openrouter-us-only-cached-guardrail@main
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ inputs.guardrail_name }}

@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   update:
-    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1.1
+    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@main
     with:
       guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
       include_openai: "false"
