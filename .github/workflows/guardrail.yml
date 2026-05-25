@@ -34,7 +34,7 @@ on:
         default: "false"
         type: string
       upload_artifacts:
-        description: Upload generated JSON and CSV artifacts, including available model details with inferred parameter sizes.
+        description: Upload the endpoint-report.csv artifact.
         required: false
         default: "false"
         type: string
@@ -53,7 +53,7 @@ jobs:
       OPENROUTER_INCLUDE_ANTHROPIC: ${{ inputs.include_anthropic }}
     steps:
       - name: Update guardrail
-        uses: speedshop/openrouter-us-only-cached-guardrail@v1.1
+        uses: speedshop/openrouter-us-only-cached-guardrail@main
         with:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ inputs.guardrail_name }}

@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   update:
-    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@v1.1
+    uses: speedshop/openrouter-us-only-cached-guardrail/.github/workflows/guardrail.yml@main
     with:
       guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
       include_openai: "false"
@@ -53,7 +53,7 @@ jobs:
 | `include_openai` | No | `false` | Include the OpenAI provider |
 | `include_google` | No | `true` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
-| `upload_artifacts` | No | `false` | Upload generated artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`, `endpoint-report.csv`) |
+| `upload_artifacts` | No | `false` | Upload `endpoint-report.csv` |
 
 ### Secrets
 
@@ -71,7 +71,7 @@ jobs:
 | `include_openai` | No | `false` | Include the OpenAI provider |
 | `include_google` | No | `true` | Include Google models and providers |
 | `include_anthropic` | No | `false` | Include Anthropic models and provider |
-| `upload_artifacts` | No | `false` | Upload generated artifacts (`us-providers.json`, `cached-models.json`, `available-models.json`, `allowed-providers.json`, `endpoint-report.csv`) |
+| `upload_artifacts` | No | `false` | Upload `endpoint-report.csv` |
 
 ## Secrets and vars
 
@@ -106,10 +106,6 @@ Override with env vars:
 - `OPENROUTER_MAX_LATENCY_P50`
 
 ## Available models output
-
-When `upload_artifacts` is on, the action also writes `available-models.json`, showing reasoning/thinking models with at least 128k context which make it through the guardrail. Each entry includes the model ID, display name, context length, Hugging Face ID when available, and an inferred parameter size (`parameter_size` and `parameter_count_billions`) when OpenRouter metadata exposes one in the model name, slug, Hugging Face ID, or description.
-
-The action also uploads `endpoint-report.csv`, a per-endpoint report across all OpenRouter models. It includes model size, endpoint metadata, a boolean column for each guardrail check, and `final_included`, which is true only when every check passes.
 
 If you are curious what this repo allows right now, check the artifacts from
 the scheduled workflow in this repo:
