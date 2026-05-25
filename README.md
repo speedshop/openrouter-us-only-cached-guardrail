@@ -107,7 +107,7 @@ Override with env vars:
 
 ## Available models output
 
-When `upload_artifacts` is on, the action also writes `available-models.json`, showing reasoning/thinking models with at least 250k context which make it through the guardrail.
+When `upload_artifacts` is on, the action also writes `available-models.json`, showing reasoning/thinking models with at least 250k context which make it through the guardrail. Each entry includes the model ID, display name, context length, Hugging Face ID when available, and an inferred parameter size (`parameter_size` and `parameter_count_billions`) when OpenRouter metadata exposes one in the model name, slug, Hugging Face ID, or description.
 
 If you are curious what this repo allows right now, check the artifacts from
 the scheduled workflow in this repo:

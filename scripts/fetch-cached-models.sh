@@ -26,6 +26,63 @@ MODELS=$(curl -fsS "https://openrouter.ai/api/v1/models")
 
 echo "Filtering for models..."
 
+write_available_models() {
+  local selected_json="$1"
+
+  echo "$MODELS" | jq \
+    --argjson selected "$selected_json" \
+    '
+      def parameter_match_objects($matches):
+        $matches
+        | map({
+            value: (.captures[] | select(.name == "value") | .string | tonumber),
+            unit: (.captures[] | select(.name == "unit") | .string | ascii_downcase)
+          })
+        | map(. + {
+            parameter_count_billions: (if .unit == "b" then .value else (.value / 1000) end),
+            parameter_size: ((.value | tostring) + (.unit | ascii_upcase))
+          });
+
+      def parameter_matches:
+        (
+          [(.name? // ""), (.hugging_face_id? // ""), (.canonical_slug? // ""), (.id? // "")]
+          | join(" ")
+          | [match("(?i)(^|[^[:alnum:]])(?<value>[0-9]+(?:\\.[0-9]+)?)\\s*b(?:[^[:alnum:]]|$)"; "g")]
+          | parameter_match_objects(map(.captures += [{name: "unit", string: "b", offset: 0, length: 1}]))
+        )
+        +
+        (
+          (.description? // "")
+          | [match("(?i)(^|[^[:alnum:]])(?<value>[0-9]+(?:\\.[0-9]+)?)\\s*(?<unit>[bm])(?:\\s|-)?(?:parameters?|params?)\\b"; "g")]
+          | parameter_match_objects(.)
+        );
+
+      def inferred_parameter_size:
+        (parameter_matches | if length == 0 then null else max_by(.parameter_count_billions) end) as $match
+        | if $match == null then
+            {parameter_size: null, parameter_count_billions: null}
+          else
+            {
+              parameter_size: $match.parameter_size,
+              parameter_count_billions: $match.parameter_count_billions
+            }
+          end;
+
+      .data
+      | map(select(.id as $id | $selected | index($id)))
+      | map({
+          id,
+          name,
+          context_length,
+          parameter_size: inferred_parameter_size.parameter_size,
+          parameter_count_billions: inferred_parameter_size.parameter_count_billions,
+          hugging_face_id,
+          canonical_slug
+        })
+      | sort_by(.id)
+    ' > "${OUTPUT_DIR}/available-models.json"
+}
+
 # Filter models:
 # - Excludes openai/google/anthropic by default (toggle via env vars)
 # - Requires OpenRouter reasoning/thinking support
@@ -102,7 +159,7 @@ fi
 if [[ -z "${OPENROUTER_PROVISIONING_KEY:-}" ]]; then
   echo "Warning: OPENROUTER_PROVISIONING_KEY not set. Skipping performance filter."
   echo "$BASE_MODELS" > "${OUTPUT_DIR}/cached-models.json"
-  echo "$BASE_MODELS" > "${OUTPUT_DIR}/available-models.json"
+  write_available_models "$BASE_MODELS"
 else
   if [[ ! -f "${OUTPUT_DIR}/us-providers.json" ]]; then
     echo "Error: us-providers.json not found. Run ./scripts/fetch-providers.sh first."
@@ -279,7 +336,8 @@ else
   if [[ "${#AVAILABLE_MODELS[@]}" -eq 0 ]]; then
     echo "[]" > "${OUTPUT_DIR}/available-models.json"
   else
-    printf '%s\n' "${AVAILABLE_MODELS[@]}" | jq -R . | jq -s 'sort' > "${OUTPUT_DIR}/available-models.json"
+    AVAILABLE_MODELS_JSON=$(printf '%s\n' "${AVAILABLE_MODELS[@]}" | jq -R . | jq -s 'sort')
+    write_available_models "$AVAILABLE_MODELS_JSON"
   fi
 
   if [[ "${#PROVIDERS_WITH_MATCHES[@]}" -eq 0 ]]; then
@@ -294,3 +352,9 @@ echo "Found ${COUNT} cached models. Saved to cached-models.json"
 echo ""
 echo "Models:"
 jq -r '.[]' "${OUTPUT_DIR}/cached-models.json"
+
+if [[ -f "${OUTPUT_DIR}/available-models.json" ]]; then
+  echo ""
+  echo "Available model details:"
+  jq -r '.[] | "\(.id)\t\(.parameter_size // "unknown")\t\(.context_length // "unknown") context"' "${OUTPUT_DIR}/available-models.json"
+fi
