@@ -24,7 +24,7 @@ inputs:
     required: false
     default: "false"
   upload_artifacts:
-    description: Upload generated JSON and CSV artifacts, including available model details with inferred parameter sizes.
+    description: Upload the endpoint-report.csv artifact.
     required: false
     default: "false"
 runs:
@@ -71,34 +71,6 @@ runs:
         OPENROUTER_INCLUDE_GOOGLE: ${{ inputs.include_google }}
         OPENROUTER_INCLUDE_ANTHROPIC: ${{ inputs.include_anthropic }}
       run: ./scripts/report-endpoints.sh > endpoint-report.csv
-
-    - name: Upload us-providers.json
-      if: ${{ inputs.upload_artifacts == 'true' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: us-providers.json
-        path: ${{ github.action_path }}/us-providers.json
-
-    - name: Upload cached-models.json
-      if: ${{ inputs.upload_artifacts == 'true' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: cached-models.json
-        path: ${{ github.action_path }}/cached-models.json
-
-    - name: Upload available-models.json
-      if: ${{ inputs.upload_artifacts == 'true' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: available-models.json
-        path: ${{ github.action_path }}/available-models.json
-
-    - name: Upload allowed-providers.json
-      if: ${{ inputs.upload_artifacts == 'true' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: allowed-providers.json
-        path: ${{ github.action_path }}/allowed-providers.json
 
     - name: Upload endpoint-report.csv
       if: ${{ inputs.upload_artifacts == 'true' }}
