@@ -22,6 +22,6 @@ jobs:
           provisioning_key: ${{ secrets.OPENROUTER_PROVISIONING_KEY }}
           guardrail_name: ${{ vars.OPENROUTER_GUARDRAIL_NAME }}
           include_openai: "false"
-          include_google: "false"
+          include_google: "true"
           include_anthropic: "false"
           upload_artifacts: "true"

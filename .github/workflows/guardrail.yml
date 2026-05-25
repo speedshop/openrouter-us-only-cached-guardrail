@@ -26,7 +26,7 @@ on:
       include_google:
         description: Include Google models and providers.
         required: false
-        default: "false"
+        default: "true"
         type: string
       include_anthropic:
         description: Include Anthropic models and provider.
